@@ -1,0 +1,29 @@
+# Node modules (Never push these, these a huge!)
+node_modules/
+
+# Build output
+dist/
+
+# TypeScript cache
+*.tsbuildinfo
+
+#db
+*.db
+
+# envs
+.env
+
+# Logs (if we will even have them, just to be sure)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
