@@ -22,6 +22,23 @@ const example: Quiz = {
                     traitEffects: [{ traitId: "foobar", value: 2 }]
                 }
             ]
+        },
+        {
+            id: "q1",
+            prompt: "foo?",
+            type: "single-choice",
+            answers: [
+                {
+                    id: "a",
+                    label: "BAR!",
+                    traitEffects: [{ traitId: "FUBAR", value: 2 }]
+                },
+                {
+                    id: "b",
+                    label: "bar...",
+                    traitEffects: [{ traitId: "foobar", value: 2 }]
+                }
+            ]
         }
     ],
     resultLogic: {
