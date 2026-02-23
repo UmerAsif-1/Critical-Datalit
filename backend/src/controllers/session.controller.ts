@@ -1,7 +1,8 @@
 import {Request,Response}  from "express";
 import {db} from '../db';
-import {quizzes} from "../quizzes";
+import {getQuizById, quizzes} from "../quizzes";
 import {generateSessionId, generateJoinCode} from "../utils/generateSessionCodes";
+import {setCookie} from "../utils/cookies";
 
 const MAX_QUESTIONS = 50; // This is the temp value in schema.sql
 
@@ -19,10 +20,13 @@ interface SessionInsertRow{
 
 export function createSession(req: Request,res: Response) {
     const {quizId} = req.body as { quizId?: string };
-    if (!quizId || !quizzes[Number(quizId)]) {
+    if (!quizId ) {
         return res.status(400).json({message: "Invalid quiz id"});
     }
-    const quiz = quizzes[Number(quizId)];
+    const quiz = getQuizById(quizId);
+    if (!quiz ) {
+        return res.status(400).json({message: "Invalid quiz id"});
+    }
     const questionCount = quiz.questions.length;
 
     const sessionId = generateSessionId();
@@ -35,21 +39,25 @@ export function createSession(req: Request,res: Response) {
     while (true) {
         const code = generateJoinCode();
         try {
+            const questionCols = quiz.questions.map((_, i) => `question_${i + 1}`);
+            const questionPlaceholders = questionCols.map(() => "?");
+            const questionValues = questionCols.map(() => 0);
 
-            const columnString = ["id", "join_code", "admin_cookie", "quiz_id", "created_at", ...questionCols].join(", ");
-            const placeHolders = [
-                "?",
-                "?",
-                "?",
-                "?",
-                "datetime('now')",
-                ...questionCols.map(() => '0')
-            ].join(', ');
-
-            db.prepare(
-                `INSERT INTO sessions (${columnString})
-                 VALUES (${placeHolders})`
-            ).run(sessionId, code, adminCookie, quiz);
+            db.prepare(`
+            INSERT INTO sessions (
+            id, join_code, admin_cookie, quiz_id, created_at,
+            ${questionCols.join(", ")}
+            ) VALUES (
+            ?, ?, ?, ?, datetime('now'),
+            ${questionPlaceholders.join(", ")}
+            )
+            `).run(
+                sessionId,
+                code,
+                adminCookie,
+                quiz.id,
+                ...questionValues
+            );
             joinCode = code;
 
             break;
@@ -64,15 +72,12 @@ export function createSession(req: Request,res: Response) {
 
     }
     // TODO: Fix this when we have an actual domain
-    res.cookie("session_admin_cookie", adminCookie, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            domain: "localhost",
-            path: "/",
-            maxAge: 24 * 60 * 60 * 1000
-        }
-    );
+    setCookie(res, "__Host-admin_token",  adminCookie);
+    return res.status(200).json({
+        sessionId,
+        joinCode,
+        adminUrl: `/session/${joinCode}/admin`
+    });
 
 }
 
@@ -89,7 +94,7 @@ export function createSession(req: Request,res: Response) {
             return res.status(404).json({error: "No session found"});
         }
 
-        const quiz = quizzes[Number(session.quiz_id)];
+        const quiz = getQuizById(session.quiz_id);
         if (!quiz) {
             return res.status(410).json({error: "No quiz found"});
         }
@@ -105,21 +110,20 @@ export function createSession(req: Request,res: Response) {
         const cookie = generateSessionId(); // TODO: Implement cookie-creator and call it
         const values = [cookie, session.id, ...Array(questionCount).fill(null)];
 
+
         db.prepare(`
             INSERT INTO game (${columnString})
             VALUES (${placeHolders})`
         ).run(...values);
 
         // TODO: Fix this when we have an actual domain
-        res.cookie("User_Token", cookie, {
-                httpOnly: true,
-                secure: false,
-                sameSite: "lax",
-                domain: "localhost",
-                path: "/",
-                maxAge: 24 * 60 * 60 * 1000
-            }
-        );
+        setCookie(res, "__Host-user_token", cookie);
+
+        return res.status(200).json({
+            sessionId: session.id,
+            playUrl: `/session/${code}/play`
+        });
+
 
 
     }
