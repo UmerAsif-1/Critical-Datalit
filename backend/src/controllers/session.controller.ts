@@ -28,9 +28,9 @@ export function createSession(req: Request,res: Response) {
         return res.status(400).json({message: "Invalid quiz id"});
     }
     const questionCount = quiz.questions.length;
+    let adminCookie = generateSessionId(); // TODO: Implement cookie-creator and call it
 
     const sessionId = generateSessionId();
-    const adminCookie = generateSessionId(); // TODO: Implement cookie-creator and call it
     const questionCols: string[] = [];
     for (let i = 0, len = questionCount; i < len; i++) {
         questionCols.push(`question_${i + 1}`);
@@ -38,6 +38,7 @@ export function createSession(req: Request,res: Response) {
     let joinCode: string | null = null;
     while (true) {
         const code = generateJoinCode();
+        adminCookie = generateSessionId(); // TODO: Implement cookie-creator and call it
         try {
             const questionCols = quiz.questions.map((_, i) => `question_${i + 1}`);
             const questionPlaceholders = questionCols.map(() => "?");
@@ -81,49 +82,45 @@ export function createSession(req: Request,res: Response) {
 
 }
 
-    export function joinSession(req: Request, res: Response) {
-        const {code} = req.body as { code?: string };
+export function joinSession(req: Request, res: Response) {
+    const {code} = req.body as { code?: string };
 
-        const session = db.prepare(`
-            SELECT id, quiz_id
-            FROM sessions
-            WHERE join_code = ?
-        `).get(code) as SessionRow | undefined;
+    const session = db.prepare(`
+        SELECT id, quiz_id
+        FROM sessions
+        WHERE join_code = ?
+    `).get(code) as SessionRow | undefined;
 
-        if (!session) {
-            return res.status(404).json({error: "No session found"});
-        }
-
-        const quiz = getQuizById(session.quiz_id);
-        if (!quiz) {
-            return res.status(410).json({error: "No quiz found"});
-        }
-        const questionCount = quiz.questions.length;
-
-        const answerCols: string[] = [];
-        for (let i = 0, len = questionCount; i < len; i++) {
-            answerCols.push(`answer_${i + 1}`);
-        }
-        const columnString = ["user_cookie", "session_id", ...answerCols].join(", ");
-        const placeHolders = new Array(answerCols.length + 2).fill("?").join(', ');
-
-        const cookie = generateSessionId(); // TODO: Implement cookie-creator and call it
-        const values = [cookie, session.id, ...Array(questionCount).fill(null)];
-
-
-        db.prepare(`
-            INSERT INTO game (${columnString})
-            VALUES (${placeHolders})`
-        ).run(...values);
-
-        // TODO: Fix this when we have an actual domain
-        setCookie(res, "__Host-user_token", cookie);
-
-        return res.status(200).json({
-            sessionId: session.id,
-            playUrl: `/session/${code}/play`
-        });
-
-
-
+    if (!session) {
+        return res.status(404).json({error: "No session found"});
     }
+
+    const quiz = getQuizById(session.quiz_id);
+    if (!quiz) {
+        return res.status(410).json({error: "No quiz found"});
+    }
+    const questionCount = quiz.questions.length;
+
+    const answerCols: string[] = [];
+    for (let i = 0, len = questionCount; i < len; i++) {
+        answerCols.push(`answer_${i + 1}`);
+    }
+    const columnString = ["user_cookie", "session_id", ...answerCols].join(", ");
+    const placeHolders = new Array(answerCols.length + 2).fill("?").join(', ');
+
+    const cookie = generateSessionId(); // TODO: Implement cookie-creator and call it
+    const values = [cookie, session.id, ...Array(questionCount).fill(null)];
+
+    db.prepare(`
+        INSERT INTO game (${columnString})
+        VALUES (${placeHolders})`
+    ).run(...values);
+
+    // TODO: Fix this when we have an actual domain
+    setCookie(res, "__Host-user_token", cookie);
+
+    return res.status(200).json({
+        sessionId: session.id,
+        playUrl: `/session/${session.id}/play`
+    });
+}

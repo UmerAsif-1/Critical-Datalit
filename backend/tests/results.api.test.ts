@@ -30,7 +30,6 @@ describe("Player final results API", () => {
         const { joinCode } = createRes.body;
         expect(joinCode).toBeDefined();
 
-
         const joinRes = await request(baseUrl)
             .post("/api/sessions/join")
             .send({ code: joinCode });
@@ -38,6 +37,9 @@ describe("Player final results API", () => {
 
         const playerSessionId = joinRes.body.sessionId;
         expect(playerSessionId).toBeDefined();
+
+        // NEW: playUrl should now be sessionId-based
+        expect(joinRes.body.playUrl).toBe(`/session/${playerSessionId}/play`);
 
         const rawCookies = joinRes.headers["set-cookie"];
         const cookies: string[] = Array.isArray(rawCookies)
@@ -51,6 +53,7 @@ describe("Player final results API", () => {
         );
         expect(rawCookie).toBeDefined();
 
+        // send back only "name=value"
         const playerCookieValue = rawCookie!.split(";")[0];
 
         const quizzesList = await request(baseUrl).get("/api/quizzes");
@@ -63,7 +66,7 @@ describe("Player final results API", () => {
         const totalQuestions = quizRes.body.questions.length;
         expect(totalQuestions).toBeGreaterThan(0);
 
-
+        // Answer Q1
         await request(baseUrl)
             .post("/api/game/submit-answer")
             .set("Cookie", playerCookieValue)
@@ -74,10 +77,9 @@ describe("Player final results API", () => {
             })
             .expect(200);
 
-
-
+        // Pending after partial
         const pendingRes = await request(baseUrl)
-            .get(`/api/game/result?sessionId=${playerSessionId}`) // <-- CRITICAL FIX
+            .get(`/api/game/result?sessionId=${encodeURIComponent(playerSessionId)}`) // encode sessionId
             .set("Cookie", playerCookieValue);
 
         expect(pendingRes.status).toBe(200);
@@ -85,6 +87,7 @@ describe("Player final results API", () => {
         expect(pendingRes.body.answered).toBe(1);
         expect(pendingRes.body.total).toBe(totalQuestions);
 
+        // Answer remaining questions
         for (let i = 2; i <= totalQuestions; i++) {
             await request(baseUrl)
                 .post("/api/game/submit-answer")
@@ -97,8 +100,9 @@ describe("Player final results API", () => {
                 .expect(200);
         }
 
+        // Final after all answered
         const finalRes = await request(baseUrl)
-            .get(`/api/game/result?sessionId=${playerSessionId}`) // <-- CRITICAL FIX
+            .get(`/api/game/result?sessionId=${encodeURIComponent(playerSessionId)}`) // encode sessionId
             .set("Cookie", playerCookieValue);
 
         expect(finalRes.status).toBe(200);

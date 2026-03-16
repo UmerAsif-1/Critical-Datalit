@@ -1,58 +1,20 @@
 import { Request, Response } from "express";
-import {db} from "../db";
 import { getQuizById } from "../quizzes";
 import { computeTraitTotals, computeResult } from "../quizzes/engine";
 
-
-interface SessionRow {
-    id: string;
-    quiz_id: string;
-}
-
-
-interface GameRow {
-    session_id: string;
-    user_cookie: string;
-    [key: `answer_${number}`]: number | null | string | undefined;
-}
-
-
 export function getPlayerResult(req: Request, res: Response) {
-    const sessionId = req.query.sessionId;
-    if (typeof sessionId !== "string") {
-        return res.status(400).json({error: "Missing sessionId"});
-    }
-
-    const userCookie = req.cookies["__Host-user_token"];
-    if (!userCookie) {
-        return res.status(401).json({error: "No user cookie."});
-    }
-    const session = db.prepare(`
-    SELECT id, quiz_id FROM sessions WHERE id = ?
-    `).get(sessionId) as SessionRow | undefined;
-
-    if(!session){
-        return res.status(400).json({error: "No session found"});
-    }
+    const { session, game } = req.user!;
 
     const quiz = getQuizById(session.quiz_id);
     if (!quiz) {
         return res.status(410).json({ error: "Quiz unavailable" });
     }
 
-    const row = db.prepare(
-            `SELECT * FROM game WHERE session_id = ? AND user_cookie = ?`
-                             ).get(sessionId, userCookie) as GameRow | undefined;
-
-    if (!row) {
-        return res.status(404).json({ error: "Player not found in session" });
-    }
-
     const totalQuestions = quiz.questions.length;
     const answers: (number | null)[] = [];
     for (let i = 1; i <= totalQuestions; i++) {
         const key = `answer_${i}` as const;
-        const raw = row[key];
+        const raw = (game as any)[key];
 
         if (raw === null || raw === undefined) {
             answers.push(null);
@@ -102,11 +64,4 @@ export function getPlayerResult(req: Request, res: Response) {
         result: finalResult,
         traits,
     });
-
-
-
-
-
-
-
 }

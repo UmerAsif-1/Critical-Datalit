@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     question_50 INTEGER DEFAULT 0
 
 );
-CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
+
 
 CREATE TABLE IF NOT EXISTS game (
     user_cookie TEXT NOT NULL,
@@ -119,7 +119,10 @@ CREATE TABLE IF NOT EXISTS game (
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_game_user_session
-    ON game(user_cookie, session_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_admin_cookie ON sessions(admin_cookie);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_game_session_user ON game(session_id, user_cookie);
 
+CREATE INDEX IF NOT EXISTS idx_game_session ON game(session_id);
+CREATE INDEX IF NOT EXISTS idx_game_user_cookie ON game(user_cookie);
+CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);

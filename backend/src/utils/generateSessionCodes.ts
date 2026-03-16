@@ -10,3 +10,6 @@ export function generateJoinCode(): string {
 export function generateSessionId(): string {
     return randomUUID();
 }
+export function isValidJoinCode(code: string): boolean {
+    return /^\d{6}$/.test(code);
+}
