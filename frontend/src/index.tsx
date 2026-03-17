@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AppProvider } from './context/AppContext'; // <-- import the provider
+import { AppProvider } from './context/AppContext'; 
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -11,11 +11,11 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <AppProvider> {/* <-- wrap App with AppProvider */}
+    <AppProvider>
       <App />
     </AppProvider>
   </React.StrictMode>
 );
 
-// Optional: performance logging
-reportWebVitals();``
+
+reportWebVitals();

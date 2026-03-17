@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 
-const InfoButton: React.FC = () => {
+export interface InfoButtonProps {
+    /** When true, pill-style white button with black text for header bar */
+    variant?: "default" | "header";
+}
+
+const InfoButton: React.FC<InfoButtonProps> = ({ variant = "default" }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const isHeader = variant === "header";
 
     return (
         <div style={{ position: "relative", marginRight: 16 }}>
@@ -9,16 +15,17 @@ const InfoButton: React.FC = () => {
                 style={{
                     width: 60,
                     height: 40,
-                    borderRadius: "30%",
-                    border: "1px solid #ddd",
+                    borderRadius: 20,
+                    border: "none",
                     background: "#FFFFFF",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: 600,
+                    fontSize: 20,
+                    color: "#000000",
+                    fontFamily: "'Lexend', sans-serif",
+                    fontWeight: 700,
                 }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
@@ -29,8 +36,9 @@ const InfoButton: React.FC = () => {
                 <div
                     style={{
                         position: "absolute",
-                        top: 50,
-                        left: 0,
+                        top: 0,
+                        right: "100%",
+                        marginRight: 8,
                         width: 250,
                         padding: 16,
                         background: "#FFFFFF",
@@ -44,8 +52,8 @@ const InfoButton: React.FC = () => {
                 >
                     <h4 style={{ margin: 0, marginBottom: 8 }}>Instructions</h4>
                     <p style={{ margin: 0 }}>
-                        Enter a 6-digit session code to join an existing session, or click "Create Session" to start a new one.
-                        Use the accessibility controls to adjust font size, and switch language with the language switcher.
+                    This app was created to educate youth about data privilege and data justice. 
+                    Join a session, answer questions and see how privilege affects you.
                     </p>
                 </div>
             )}
