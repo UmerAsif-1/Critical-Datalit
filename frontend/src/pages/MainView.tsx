@@ -148,16 +148,39 @@ const MainView: React.FC = () => {
                         Join Session
                     </button>
 
-                    <p
+                    <div
                         style={{
+                            display: "flex",
+                            alignItems: "center",
                             margin: "18px 0",
-                            color: DARK_BLACK,
-                            fontSize: 14,
-                            fontWeight: 500,
+                            gap: 12,
                         }}
                     >
-                        or
-                    </p>
+                        <span
+                            style={{
+                                flex: 1,
+                                height: 1,
+                                background: "#ddd",
+                            }}
+                        />
+                        <span
+                            style={{
+                                color: DARK_BLACK,
+                                fontSize: 24,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                            }}
+                        >
+                            or
+                        </span>
+                        <span
+                            style={{
+                                flex: 1,
+                                height: 1,
+                                background: "#ddd",
+                            }}
+                        />
+                    </div>
 
                     <button
                         style={buttonStyle(ORANGE_BUTTON)}
