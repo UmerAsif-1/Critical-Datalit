@@ -24,7 +24,7 @@ const cardStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "10px 12px",
-    borderRadius: 8,
+    borderRadius: 15, 
     border: "1px solid #ddd",
     marginBottom: 18,
     fontSize: 14,

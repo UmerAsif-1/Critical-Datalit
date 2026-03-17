@@ -4,7 +4,7 @@ const sizeOptions = [24, 32, 40];
 
 const HEADER_YELLOW = "#f2c94c"; // gold/yellow for selected (matches language switcher)
 const HEADER_PURPLE_BORDER = "#5f1a94";
-const OUTER_RADIUS = 4; 
+const OUTER_RADIUS = 10; 
 
 export interface AccessibilityControlsProps {
     /** When true, white container with purple border; yellow selected, white unselected, black text */
@@ -14,7 +14,7 @@ export interface AccessibilityControlsProps {
 const AccessibilityControls: React.FC<AccessibilityControlsProps> = ({
     variant = "default",
 }) => {
-    const [selectedIndex, setSelectedIndex] = useState<number>(1); // medium selected by default
+    const [selectedIndex, setSelectedIndex] = useState<number>(1); 
 
     const isHeader = variant === "header";
 

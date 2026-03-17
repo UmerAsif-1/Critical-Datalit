@@ -28,7 +28,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             minWidth: 0,
             height: 40,
             border: "none",
-            borderRadius: isLeft ? "10% 0 0 10%" : "0 10% 10% 0",
+            borderRadius: isLeft ? "20% 0 0 20%" : "0 20% 20% 0",
             marginRight: isLeft ? -1 : 0,
             background: isHeader
                 ? isSelected
