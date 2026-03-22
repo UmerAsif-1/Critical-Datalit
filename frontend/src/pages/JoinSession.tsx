@@ -1,78 +1,60 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
 
+export type JoinSessionLocationState = {
+    sessionId: string;
+    joinCode: string;
+    playUrl: string;
+};
+
+const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
+
+/** Dev-only fallback when opening /join-session with no navigation state. */
+const DEV_JOIN_SESSION_PREVIEW: JoinSessionLocationState = {
+    sessionId: PLACEHOLDER_SESSION_ID,
+    joinCode: "000000",
+    playUrl: `/session/${PLACEHOLDER_SESSION_ID}/questions`,
+};
+
 const HEADER_PURPLE = "#6500AD";
 const LIGHT_PURPLE_BG = "#FDF9FF";
 const TEAL_BUTTON = "#15B4A9";
-const ORANGE_BUTTON = "#FF9400";
 const DARK_BLACK = "#222222";
 
-/** Until join API is wired, use a placeholder session id for navigation state. */
-const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
-
 const cardStyle: React.CSSProperties = {
-    width: 320,
-    padding: 24,
+    width: "min(480px, 92vw)",
+    padding: 28,
     borderRadius: 16,
-    fontSize: 24,
     boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
     background: "#fff",
-    textAlign: "center",
-};
-
-const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 15, 
-    border: "1px solid #ddd",
-    marginBottom: 18,
-    fontSize: 14,
     textAlign: "left",
-    boxSizing: "border-box",
 };
 
-const buttonStyle = (bg: string): React.CSSProperties => ({
-    width: "100%",
-    padding: "12px 16px",
-    borderRadius: 8,
-    border: "none",
-    color: "#000000",
-    fontWeight: 600,
-    fontSize: 30,
-    cursor: "pointer",
-    background: bg,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-});
-
-const MainView: React.FC = () => {
+const JoinSession: React.FC = () => {
     const navigate = useNavigate();
-    const [sessionCode, setSessionCode] = useState("");
+    const location = useLocation();
+    const state = location.state as JoinSessionLocationState | undefined;
+
     const [language, setLanguage] = useState<Language>("EN");
-    const [joinError, setJoinError] = useState<string | null>(null);
 
-    const joinSession = () => {
-        const code = sessionCode.trim();
-        if (!/^\d{6}$/.test(code)) {
-            setJoinError("Enter a valid 6-digit code.");
-            return;
-        }
-        setJoinError(null);
-        navigate("/join-session", {
-            state: {
-                sessionId: PLACEHOLDER_SESSION_ID,
-                joinCode: code,
-                playUrl: `/session/${PLACEHOLDER_SESSION_ID}/questions`,
-            },
-        });
-    };
+    const isDev = process.env.NODE_ENV === "development";
+    const hasRealState = Boolean(state?.sessionId && state?.joinCode);
+    const effective = hasRealState ? state! : isDev ? DEV_JOIN_SESSION_PREVIEW : null;
 
-    const createSession = () => {
-        navigate("/CreateSession");
+    if (!effective) {
+        return <Navigate to="/MainView" replace />;
+    }
+
+    const { joinCode, playUrl } = effective;
+
+    const startQuiz = () => {
+        const path = playUrl.startsWith("/") ? playUrl : `/${playUrl}`;
+        navigate(path, { state: { joinCode } });
     };
 
     return (
@@ -84,9 +66,9 @@ const MainView: React.FC = () => {
                 flexDirection: "column",
                 alignItems: "center",
                 background: LIGHT_PURPLE_BG,
+                fontFamily: "'Montserrat', 'Lexend', sans-serif",
             }}
         >
-            {/* Breadcrumb */}
             <div
                 style={{
                     position: "absolute",
@@ -96,10 +78,9 @@ const MainView: React.FC = () => {
                     color: "#666",
                 }}
             >
-                /Main Primary
+                /Join Session
             </div>
 
-            {/* Purple header bar */}
             <div
                 style={{
                     position: "absolute",
@@ -125,7 +106,6 @@ const MainView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main content: title + card, centered with top padding for header */}
             <div
                 style={{
                     flex: 1,
@@ -137,77 +117,70 @@ const MainView: React.FC = () => {
                     paddingBottom: 120,
                     paddingLeft: 24,
                     paddingRight: 24,
+                    width: "100%",
+                    boxSizing: "border-box",
                 }}
             >
                 <Header title="Critical DataLit" />
-                <div style={cardStyle}>
+
+                <div
+                    style={{
+                        width: "min(480px, 92vw)",
+                        marginBottom: 12,
+                        alignSelf: "center",
+                    }}
+                >
                     <p
                         style={{
                             margin: 0,
                             fontWeight: 700,
-                            marginBottom: 10,
-                            textAlign: "center",
+                            fontSize: 18,
                             color: DARK_BLACK,
+                            textAlign: "left",
                         }}
                     >
-                        Enter Session Code
+                        Session {joinCode}
                     </p>
-                    <input
-                        value={sessionCode}
-                        onChange={(e) => setSessionCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        style={inputStyle}
-                        placeholder="Enter 6-Digit Code"
-                        maxLength={6}
-                        inputMode="numeric"
-                    />
-                    {joinError && (
-                        <p style={{ color: "#c00", fontSize: 14, marginTop: 0, marginBottom: 12 }}>{joinError}</p>
-                    )}
-                    <button type="button" style={buttonStyle(TEAL_BUTTON)} onClick={joinSession}>
-                        Join Session
-                    </button>
+                </div>
 
-                    <div
+                <div style={cardStyle}>
+                    <p
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            margin: "18px 0",
-                            gap: 12,
+                            margin: 0,
+                            marginBottom: 28,
+                            fontSize: 18,
+                            lineHeight: 1.5,
+                            color: DARK_BLACK,
+                            fontWeight: 500,
                         }}
                     >
-                        <span
+                        In this session you will answer questions about data privilege and how it might show up in
+                        your life. Please select the most appropriate answer from the options provided for you.
+                    </p>
+
+                    <div style={{ textAlign: "center" }}>
+                        <button
+                            type="button"
+                            onClick={startQuiz}
                             style={{
-                                flex: 1,
-                                height: 1,
-                                background: "#ddd",
-                            }}
-                        />
-                        <span
-                            style={{
-                                color: DARK_BLACK,
-                                fontSize: 24,
+                                padding: "14px 36px",
+                                borderRadius: 999,
+                                border: "none",
+                                color: "#000000",
                                 fontWeight: 700,
-                                flexShrink: 0,
+                                fontSize: 22,
+                                cursor: "pointer",
+                                background: TEAL_BUTTON,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                                fontFamily: "inherit",
                             }}
                         >
-                            or
-                        </span>
-                        <span
-                            style={{
-                                flex: 1,
-                                height: 1,
-                                background: "#ddd",
-                            }}
-                        />
+                            Start the quiz
+                        </button>
                     </div>
-
-                    <button type="button" style={buttonStyle(ORANGE_BUTTON)} onClick={createSession}>
-                        Create Session
-                    </button>
                 </div>
             </div>
 
-            {/* Bottom decorative wavy*/}
             <div
                 style={{
                     position: "absolute",
@@ -226,19 +199,16 @@ const MainView: React.FC = () => {
                     preserveAspectRatio="none"
                     style={{ display: "block" }}
                 >
-                    {/* Yellowish back shape*/}
                     <path
                         d="M0,200 L0,50 C200,200 1000,200 1200,50 L1200,200 Z"
                         fill="#E6C84A"
                         opacity={0.5}
                     />
-                    {/* Green */}
                     <path
                         d="M0,200 L0,50 Q420,60 840,200 L0,200 Z"
                         fill="#28C900"
                         opacity={0.36}
                     />
-                    {/* Purple*/}
                     <path
                         d="M1200,200 L1200,50 Q840,60 360,200 L1200,200 Z"
                         fill="#6500AD"
@@ -250,4 +220,4 @@ const MainView: React.FC = () => {
     );
 };
 
-export default MainView;
+export default JoinSession;
