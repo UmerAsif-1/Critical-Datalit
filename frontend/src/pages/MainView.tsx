@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
@@ -46,6 +47,7 @@ const buttonStyle = (bg: string): React.CSSProperties => ({
 });
 
 const MainView: React.FC = () => {
+    const navigate = useNavigate();
     const [sessionCode, setSessionCode] = useState("");
     const [language, setLanguage] = useState<Language>("EN");
 
@@ -54,7 +56,7 @@ const MainView: React.FC = () => {
     };
 
     const createSession = () => {
-        console.log("Create");
+        navigate("/CreateSession");
     };
 
     return (

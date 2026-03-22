@@ -17,8 +17,6 @@ const App: React.FC = () => {
         {/*General routes */}
         <Route path="/MainView" element={<MainView />} />
         <Route path="/CreateSession" element={<CreateSession />} />
-        {/* 
-
         {/* Redirect unknown paths to Main */}
         <Route path="*" element={<Navigate to="/MainView" replace />} />
       </Routes>

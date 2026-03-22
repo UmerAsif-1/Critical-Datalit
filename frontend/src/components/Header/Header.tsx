@@ -3,11 +3,13 @@ import React from "react";
 interface HeaderProps {
     title: string;
     subtitle?: string;
+    /** Merged onto the title wrapper — use for page-specific positioning without changing MainView */
+    wrapperStyle?: React.CSSProperties;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+const Header: React.FC<HeaderProps> = ({ title, subtitle, wrapperStyle }) => {
     return (
-        <div style={{ textAlign: "center", marginBottom: 30 }}>
+        <div style={{ textAlign: "center", marginBottom: 30, ...wrapperStyle }}>
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700, color: "#333333" }}>
                 {title}
             </h1>

@@ -7,11 +7,12 @@ export interface InfoButtonProps {
 
 const InfoButton: React.FC<InfoButtonProps> = ({ variant = "default" }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const isHeader = variant === "header";
 
     return (
         <div style={{ position: "relative", marginRight: 16 }}>
             <button
+                type="button"
+                data-variant={variant}
                 style={{
                     width: 60,
                     height: 40,
