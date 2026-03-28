@@ -1,8 +1,8 @@
 import {Request,Response}  from "express";
 import {db} from '../db';
 import {getQuizById, quizzes} from "../quizzes";
-import {generateSessionId, generateJoinCode} from "../utils/generateSessionCodes";
-import {setCookie} from "../utils/cookies";
+import {generateSessionId, generateJoinCode, isValidJoinCode} from "../utils/generateSessionCodes";
+import {setAdminCookie, setUserCookie} from "../utils/cookies";
 
 const MAX_QUESTIONS = 50; // This is the temp value in schema.sql
 
@@ -72,8 +72,7 @@ export function createSession(req: Request,res: Response) {
         }
 
     }
-    // TODO: Fix this when we have an actual domain
-    setCookie(res, "__Host-admin_token",  adminCookie);
+    setAdminCookie(res, adminCookie);
     return res.status(200).json({
         sessionId,
         joinCode,
@@ -84,6 +83,10 @@ export function createSession(req: Request,res: Response) {
 
 export function joinSession(req: Request, res: Response) {
     const {code} = req.body as { code?: string };
+
+    if (!code || !isValidJoinCode(code)) {
+        return res.status(400).json({ error: "Invalid join code format" });
+    }
 
     const session = db.prepare(`
         SELECT id, quiz_id
@@ -116,8 +119,7 @@ export function joinSession(req: Request, res: Response) {
         VALUES (${placeHolders})`
     ).run(...values);
 
-    // TODO: Fix this when we have an actual domain
-    setCookie(res, "__Host-user_token", cookie);
+    setUserCookie(res, cookie);
 
     return res.status(200).json({
         sessionId: session.id,

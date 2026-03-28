@@ -2,7 +2,7 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
-    join_code TEXT NOT NULL,
+    join_code TEXT UNIQUE NOT NULL,
     admin_cookie TEXT NOT NULL,
     quiz_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS game (
 );
 
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_join_code ON sessions(join_code);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_admin_cookie ON sessions(admin_cookie);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_game_session_user ON game(session_id, user_cookie);
 

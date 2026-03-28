@@ -33,3 +33,4 @@ export interface PersonalityTrait {// TODO: Change name
     name: string;
     description: string;
 }
+

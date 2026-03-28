@@ -30,7 +30,7 @@ export function submitAnswer(req: Request, res: Response) {
         return res.status(400).json({ error: "Invalid format!" });
     }
 
-    if (questionIndex < 1 || questionIndex >= MAX_QUESTION_AMOUNT) {
+    if (questionIndex < 1 || questionIndex > MAX_QUESTION_AMOUNT) {
         return res.status(400).json({ error: "Question index out of supported range!" });
     }
 
