@@ -5,11 +5,10 @@ import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
+import { colors } from "../theme/colors";
 
 const HEADER_PURPLE = "#6500AD";
 const LIGHT_PURPLE_BG = "#FDF9FF";
-const TEAL_BUTTON = "#15B4A9";
-const ORANGE_BUTTON = "#FF9400";
 const DARK_BLACK = "#222222";
 
 const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
@@ -159,7 +158,7 @@ const MainView: React.FC = () => {
                     {joinError && (
                         <p style={{ color: "#c00", fontSize: 14, marginTop: 0, marginBottom: 12 }}>{joinError}</p>
                     )}
-                    <button type="button" style={buttonStyle(TEAL_BUTTON)} onClick={joinSession}>
+                    <button type="button" style={buttonStyle(colors.primaryButton)} onClick={joinSession}>
                         Join Session
                     </button>
 
@@ -197,7 +196,7 @@ const MainView: React.FC = () => {
                         />
                     </div>
 
-                    <button type="button" style={buttonStyle(ORANGE_BUTTON)} onClick={createSession}>
+                    <button type="button" style={buttonStyle(colors.primaryButton)} onClick={createSession}>
                         Create Session
                     </button>
                 </div>

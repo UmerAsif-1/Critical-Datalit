@@ -1,6 +1,7 @@
 // Shared screen palette.
 export const colors = {
     headerPurple: "#6500AD",
+    primaryButton: "#15B4A9",
     pageBackground: "#F9F5FF",
     cardWhite: "#FFFFFF",
     darkText: "#222222",

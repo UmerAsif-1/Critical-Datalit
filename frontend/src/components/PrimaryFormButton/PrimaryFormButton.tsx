@@ -1,10 +1,9 @@
 import React from "react";
+import { colors } from "../../theme/colors";
 import {
     SESSION_BUTTON_MIN_HEIGHT_PX,
     SESSION_CARD_INNER_WIDTH_PX,
 } from "../../theme/sessionLayout";
-
-const ORANGE_BUTTON = "#FF9400";
 
 export interface PrimaryFormButtonProps {
     children: React.ReactNode;
@@ -41,7 +40,7 @@ const PrimaryFormButton: React.FC<PrimaryFormButtonProps> = ({
                 fontFamily: "inherit",
                 lineHeight: 1,
                 cursor: disabled ? "not-allowed" : "pointer",
-                background: ORANGE_BUTTON,
+                background: colors.primaryButton,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                 opacity: disabled ? 0.65 : 1,
             }}

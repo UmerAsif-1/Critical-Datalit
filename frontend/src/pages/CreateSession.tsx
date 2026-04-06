@@ -1,12 +1,18 @@
 import React, { useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import AppTopBar from "../components/AppTopBar/AppTopBar";
 import Header from "../components/Header/Header";
 import PageCard from "../components/PageCard/PageCard";
 import LabeledInput from "../components/LabeledInput/LabeledInput";
-import LabeledSelect from "../components/LabeledSelect/LabeledSelect";
 import PrimaryFormButton from "../components/PrimaryFormButton/PrimaryFormButton";
 import { colors } from "../theme/colors";
+import type { AdminViewLocationState } from "./AdminView";
+
+function generateSessionCode(): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 
 const createSessionColumnStyle: React.CSSProperties = {
     flex: 1,
@@ -22,23 +28,19 @@ const createSessionColumnStyle: React.CSSProperties = {
     boxSizing: "border-box",
 };
 
-const AGE_GROUP_OPTIONS = [
-    { value: "11-14", label: "11–14" },
-    { value: "15-18", label: "15–18" },
-    { value: "18+", label: "18+" },
-];
-
 const CreateSession: React.FC = () => {
+    const navigate = useNavigate();
     const { language, setLanguage } = useContext(AppContext);
     const [sessionName, setSessionName] = useState("");
-    const [ageGroup, setAgeGroup] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!sessionName.trim() || !ageGroup) {
+        if (!sessionName.trim()) {
             return;
         }
-        console.log("Create session", { sessionName: sessionName.trim(), ageGroup });
+        const sessionId = generateSessionCode();
+        const state: AdminViewLocationState = { sessionName: sessionName.trim() };
+        navigate(`/admin/${sessionId}`, { state });
     };
 
     return (
@@ -66,15 +68,7 @@ const CreateSession: React.FC = () => {
                             onChange={setSessionName}
                             placeholder="e.g.. Class Quiz Feb 21 2026"
                         />
-                        <LabeledSelect
-                            id="participants-age"
-                            label="Participants Age"
-                            value={ageGroup}
-                            onChange={setAgeGroup}
-                            options={AGE_GROUP_OPTIONS}
-                            placeholderLabel="Select Age Group"
-                        />
-                        <PrimaryFormButton type="submit" disabled={!sessionName.trim() || !ageGroup}>
+                        <PrimaryFormButton type="submit" disabled={!sessionName.trim()}>
                             Create Session
                         </PrimaryFormButton>
                     </form>

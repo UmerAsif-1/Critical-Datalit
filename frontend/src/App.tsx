@@ -8,6 +8,8 @@ import {
 } from "react-router-dom";
 import MainView from "./pages/MainView";
 import CreateSession from "./pages/CreateSession";
+import AdminView from "./pages/AdminView";
+import AdminSessionEnded from "./pages/AdminSessionEnded";
 import JoinSession from "./pages/JoinSession";
 import Questions from "./pages/Questions";
 import UserResults from "./pages/UserResults";
@@ -25,6 +27,8 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/MainView" element={<MainView />} />
         <Route path="/CreateSession" element={<CreateSession />} />
+        <Route path="/admin/:sessionId/ended" element={<AdminSessionEnded />} />
+        <Route path="/admin/:sessionId" element={<AdminView />} />
         <Route path="/join-session" element={<JoinSession />} />
         <Route path="/session/:sessionId/questions" element={<Questions />} />
         <Route path="/session/:sessionId/results" element={<UserResults />} />
