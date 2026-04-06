@@ -1,10 +1,8 @@
 import type { Quiz } from "./types";
-import example from "./examplequiz"; // TODO: Rename after implementing the quiz
+import dailyDataPrivileges from "./dailyDataPrivileges";
 
-export const quizzes: Quiz[] = [
-    example
-];
+export const quizzes: Quiz[] = [dailyDataPrivileges];
 
 export function getQuizById(id: string): Quiz | undefined {
-    return quizzes.find(q => q.id === id);
+    return quizzes.find((q) => q.id === id);
 }

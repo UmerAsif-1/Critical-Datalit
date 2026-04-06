@@ -25,7 +25,6 @@ export function submitAnswer(req: Request, res: Response) {
         answer: number;
     };
 
-    // sessionId presence is enforced by middleware;
     if (!Number.isInteger(questionIndex) || !Number.isInteger(answer)) {
         return res.status(400).json({ error: "Invalid format!" });
     }
@@ -56,7 +55,6 @@ export function submitAnswer(req: Request, res: Response) {
         const answerCol = `answer_${questionIndex}`;
         const questionCol = `question_${questionIndex}`;
 
-        // Look up previous answer for this user/session
         const prevAns = db.prepare(`
                 SELECT ${answerCol} AS ans
                 FROM game
@@ -69,14 +67,12 @@ export function submitAnswer(req: Request, res: Response) {
 
         const prev = prevAns.ans;
 
-        // Update current answer
         db.prepare(`
                 UPDATE game
                 SET ${answerCol} = ?
                 WHERE user_cookie = ? AND session_id = ?
             `).run(answer, game.user_cookie, session.id);
 
-        // First-time submission → increment per-question counter
         if (prev == null ) {
             db.prepare(`
                     UPDATE sessions

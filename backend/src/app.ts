@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 import sessionRoutes from "./routes/session.routes";
 import gameRoutes from "./routes/game.routes";
@@ -8,7 +9,12 @@ import adminRoutes from "./routes/admin.routes";
 
 const app = express();
 
-
+app.use(
+    cors({
+        origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
+        credentials: true,
+    }),
+);
 app.use(express.json());
 app.use(cookieParser());
 

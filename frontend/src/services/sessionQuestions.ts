@@ -3,14 +3,10 @@ import { QUESTION_CATEGORIES } from "../types/sessionQuestion";
 
 const API_BASE = process.env.REACT_APP_API_URL ?? "";
 
-// true → GET /api/sessions/:id/questions; false → local placeholders only.
-export const USE_REMOTE_SESSION_QUESTIONS = process.env.REACT_APP_FETCH_SESSION_QUESTIONS === "true";
-
 function isQuestionCategory(value: string): value is QuestionCategory {
     return (QUESTION_CATEGORIES as readonly string[]).includes(value);
 }
 
-// Maps API category strings to QuestionCategory.
 export function normalizeQuestionCategory(raw: unknown): QuestionCategory {
     if (typeof raw !== "string") {
         return "gender";
@@ -30,9 +26,8 @@ export function normalizeQuestionCategory(raw: unknown): QuestionCategory {
         ability: "ability",
     };
 
-    const resolved = aliases[key];
-    if (resolved) {
-        return resolved;
+    if (aliases[key]) {
+        return aliases[key];
     }
     if (isQuestionCategory(key)) {
         return key;
@@ -40,20 +35,13 @@ export function normalizeQuestionCategory(raw: unknown): QuestionCategory {
     return "gender";
 }
 
-function parseSessionQuestion(row: unknown): SessionQuestion | null {
+function parsePublicQuestion(row: unknown): SessionQuestion | null {
     if (!row || typeof row !== "object") {
         return null;
     }
     const o = row as Record<string, unknown>;
-    const id = typeof o.id === "string" ? o.id : typeof o.questionId === "string" ? o.questionId : "";
-    const prompt =
-        typeof o.prompt === "string"
-            ? o.prompt
-            : typeof o.text === "string"
-              ? o.text
-              : typeof o.question === "string"
-                ? o.question
-                : "";
+    const id = typeof o.id === "string" ? o.id : "";
+    const prompt = typeof o.prompt === "string" ? o.prompt : "";
     if (!id || !prompt) {
         return null;
     }
@@ -64,76 +52,55 @@ function parseSessionQuestion(row: unknown): SessionQuestion | null {
     };
 }
 
-function parseQuestionsPayload(data: unknown): SessionQuestion[] {
-    if (!data || typeof data !== "object") {
-        return [];
-    }
-    const o = data as Record<string, unknown>;
-    const list = o.questions ?? o.items ?? o.data;
-    if (!Array.isArray(list)) {
-        return [];
-    }
-    return list.map(parseSessionQuestion).filter((q): q is SessionQuestion => q !== null);
+export function likertValueToAnswerIndex(value: string): number {
+    const map: Record<string, number> = {
+        completely_agree: 0,
+        somewhat_agree: 1,
+        somewhat_disagree: 2,
+        completely_disagree: 3,
+    };
+    return map[value] ?? 0;
 }
 
-// Stand-in list until API is on (REACT_APP_FETCH_SESSION_QUESTIONS=true).
-export const PLACEHOLDER_SESSION_QUESTIONS: SessionQuestion[] = [
-    {
-        id: "placeholder-age",
-        category: "age",
-        prompt: "People rarely make assumptions about me online because of my age.",
-    },
-    {
-        id: "placeholder-class",
-        category: "class",
-        prompt: "I can afford devices and data plans that keep me well connected online.",
-    },
-    {
-        id: "placeholder-language",
-        category: "language",
-        prompt: "I can use the web comfortably in my preferred language.",
-    },
-    {
-        id: "placeholder-gender",
-        category: "gender",
-        prompt: "My opinions online are rarely dismissed because of my gender.",
-    },
-    {
-        id: "placeholder-race",
-        category: "race_ethnicity",
-        prompt: "I rarely see harmful stereotypes about my racial or ethnic background online.",
-    },
-    {
-        id: "placeholder-ability",
-        category: "ability",
-        prompt: "Most websites and apps I need are usable with my abilities and assistive tools.",
-    },
-];
-
-async function fetchRemoteSessionQuestions(sessionId: string): Promise<SessionQuestion[]> {
-    const url = `${API_BASE}/api/sessions/${encodeURIComponent(sessionId)}/questions`;
-    const res = await fetch(url, { credentials: "include" });
+export async function fetchFirstQuizId(): Promise<string> {
+    const res = await fetch(`${API_BASE}/api/quizzes`, { credentials: "include" });
     if (!res.ok) {
-        throw new Error(`Questions request failed (${res.status})`);
+        throw new Error(`Quiz list failed (${res.status})`);
     }
-    const data = await res.json().catch(() => ({}));
-    const questions = parseQuestionsPayload(data);
-    if (questions.length === 0) {
-        throw new Error("No questions in response");
+    const list = (await res.json().catch(() => [])) as unknown;
+    if (!Array.isArray(list) || !list[0] || typeof (list[0] as { id?: string }).id !== "string") {
+        throw new Error("No quizzes configured");
     }
-    return questions;
+    return (list[0] as { id: string }).id;
 }
 
-// Fetches questions when USE_REMOTE_SESSION_QUESTIONS; on failure uses placeholders.
-export async function fetchSessionQuestions(sessionId: string): Promise<SessionQuestion[]> {
-    if (!USE_REMOTE_SESSION_QUESTIONS) {
-        return PLACEHOLDER_SESSION_QUESTIONS;
+export function traitsToScoresByCategory(
+    traits: { id: string; score: number }[],
+): Partial<Record<QuestionCategory, number>> {
+    const out: Partial<Record<QuestionCategory, number>> = {};
+    for (const t of traits) {
+        if (isQuestionCategory(t.id)) {
+            out[t.id] = t.score;
+        }
     }
+    return out;
+}
 
-    try {
-        return await fetchRemoteSessionQuestions(sessionId);
-    } catch (e) {
-        console.warn("[sessionQuestions] Remote questions failed; using placeholders:", sessionId, e);
-        return PLACEHOLDER_SESSION_QUESTIONS;
+export async function fetchQuizQuestions(quizId: string): Promise<SessionQuestion[]> {
+    const res = await fetch(`${API_BASE}/api/quizzes/${encodeURIComponent(quizId)}`, {
+        credentials: "include",
+    });
+    if (!res.ok) {
+        throw new Error(`Quiz load failed (${res.status})`);
     }
+    const data = (await res.json().catch(() => ({}))) as { questions?: unknown };
+    const list = data.questions;
+    if (!Array.isArray(list)) {
+        throw new Error("Invalid quiz response");
+    }
+    const out = list.map(parsePublicQuestion).filter((q): q is SessionQuestion => q !== null);
+    if (out.length === 0) {
+        throw new Error("Quiz has no questions");
+    }
+    return out;
 }

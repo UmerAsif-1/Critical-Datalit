@@ -3,12 +3,6 @@ import type { Request, Response } from "express";
 const COOKIE_ADMIN = "__Host-admin_token" as const;
 const COOKIE_USER  = "__Host-user_token"  as const;
 
-/**
- * This is a collection of cookie handlers that should be used as helpers. Mostly used in middleware.
- * And to keep myself sane. Please do not overthink these.
- * I am hiding the skeletons in this file and middleware
- */
-
 export function useHostPrefix(): boolean {
     return (process.env.COOKIE_USE_HOST_PREFIX ?? "true") === "true";
 }

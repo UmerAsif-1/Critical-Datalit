@@ -12,11 +12,20 @@ import {
 import AppTopBar from "../components/AppTopBar/AppTopBar";
 import Header from "../components/Header/Header";
 import { AppContext } from "../context/AppContext";
-import { PRIVILEGE_CATEGORIES } from "../constants/privilegeCategories";
+import { PRIVILEGE_CATEGORIES, getPrivilegeCategoryDisplay } from "../constants/privilegeCategories";
 import { colors } from "../theme/colors";
 import type { QuestionCategory } from "../types/sessionQuestion";
+import {
+    downloadAdminSessionCsv,
+    getAdminSessionResults,
+    getQuizDetail,
+    postAdminEndSession,
+    type AdminPlayerRow,
+    type AdminSessionResultsResponse,
+    type QuizDetailResponse,
+} from "../services/api";
+import { normalizeQuestionCategory } from "../services/sessionQuestions";
 
-// Recharts + React 19: chart components typed loosely (same pattern as UserResults).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const asChart = (C: unknown) => C as ComponentType<any>;
 const RadarChartC = asChart(RadarChart);
@@ -29,8 +38,7 @@ const ResponsiveContainerC = asChart(ResponsiveContainer);
 
 const CHART_YELLOW = "#E6C84A";
 const BAR_ORANGE = colors.accentOrange;
-const PARTICIPANT_TOTAL = 30;
-const ANSWERED_COUNT = 15;
+const POLL_MS = 4000;
 
 const RADAR_AXIS_ORDER: QuestionCategory[] = [
     "ability",
@@ -41,61 +49,16 @@ const RADAR_AXIS_ORDER: QuestionCategory[] = [
     "race_ethnicity",
 ];
 
-/** Mock average privilege levels (0–8) for the radar chart. */
-const RADAR_SCORES_BY_CATEGORY: Record<QuestionCategory, number> = {
-    ability: 5.2,
-    age: 6.1,
-    class: 4.4,
-    language: 5.0,
-    gender: 3.8,
-    race_ethnicity: 5.6,
-};
-
-type MockQuestion = {
-    category: QuestionCategory;
-    categoryLabel: string;
-    prompt: string;
-    answerOptions: { label: string; pct: number }[];
-};
-
-const MOCK_QUESTIONS: MockQuestion[] = [
-    {
-        category: "gender",
-        categoryLabel: "Gender privilege",
-        prompt: "My opinions online are rarely dismissed because of my gender.",
-        answerOptions: [
-            { label: "Completely agree", pct: 12 },
-            { label: "Somewhat agree", pct: 34 },
-            { label: "Somewhat disagree", pct: 38 },
-            { label: "Completely disagree", pct: 16 },
-        ],
-    },
-    {
-        category: "age",
-        categoryLabel: "Age privilege",
-        prompt: "I feel my age is rarely used to dismiss my ideas in group settings.",
-        answerOptions: [
-            { label: "Completely agree", pct: 22 },
-            { label: "Somewhat agree", pct: 28 },
-            { label: "Somewhat disagree", pct: 30 },
-            { label: "Completely disagree", pct: 20 },
-        ],
-    },
-    {
-        category: "class",
-        categoryLabel: "Class privilege",
-        prompt: "I can access learning resources without worrying about cost.",
-        answerOptions: [
-            { label: "Completely agree", pct: 18 },
-            { label: "Somewhat agree", pct: 40 },
-            { label: "Somewhat disagree", pct: 28 },
-            { label: "Completely disagree", pct: 14 },
-        ],
-    },
-];
-
 export type AdminViewLocationState = {
     sessionName: string;
+    joinCode?: string;
+};
+
+type AdminQuestionRow = {
+    originalIndex: number;
+    category: QuestionCategory;
+    prompt: string;
+    answerLabels: string[];
 };
 
 function formatTimeLeft(ms: number): string {
@@ -107,6 +70,21 @@ function formatTimeLeft(ms: number): string {
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
     return `${h} h ${m} min ${s} s`;
+}
+
+function countAnswersPerOption(
+    players: AdminPlayerRow[],
+    questionIndex: number,
+    numOptions: number,
+): number[] {
+    const counts = Array.from({ length: numOptions }, () => 0);
+    for (const p of players) {
+        const v = p.answers[questionIndex];
+        if (v !== null && v !== undefined && v >= 0 && v < numOptions) {
+            counts[v]++;
+        }
+    }
+    return counts;
 }
 
 const cardShell: React.CSSProperties = {
@@ -156,49 +134,151 @@ const AdminView: React.FC = () => {
     const state = location.state as AdminViewLocationState | undefined;
     const sessionName = state?.sessionName?.trim() || "New session";
 
+    const [results, setResults] = useState<AdminSessionResultsResponse | null>(null);
+    const [quizDetail, setQuizDetail] = useState<QuizDetailResponse | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [initialLoad, setInitialLoad] = useState(true);
+
     const [categoryFilter, setCategoryFilter] = useState<"all" | QuestionCategory>("all");
     const [questionIndex, setQuestionIndex] = useState(0);
+    const [remainingMs, setRemainingMs] = useState(0);
+    const [csvBusy, setCsvBusy] = useState(false);
+    const [endBusy, setEndBusy] = useState(false);
 
-    const filteredQuestions = useMemo(() => {
-        if (categoryFilter === "all") {
-            return MOCK_QUESTIONS;
+    useEffect(() => {
+        if (!sessionId) {
+            return;
         }
-        return MOCK_QUESTIONS.filter((q) => q.category === categoryFilter);
-    }, [categoryFilter]);
+        let cancelled = false;
+        setInitialLoad(true);
+        setLoadError(null);
+        (async () => {
+            try {
+                const r = await getAdminSessionResults(sessionId);
+                if (cancelled) {
+                    return;
+                }
+                setResults(r);
+                const q = await getQuizDetail(r.session.quizId);
+                if (!cancelled) {
+                    setQuizDetail(q);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setLoadError(e instanceof Error ? e.message : "Could not load admin data");
+                }
+            } finally {
+                if (!cancelled) {
+                    setInitialLoad(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [sessionId]);
+
+    useEffect(() => {
+        if (!sessionId || !quizDetail) {
+            return;
+        }
+        const id = window.setInterval(() => {
+            void (async () => {
+                try {
+                    const r = await getAdminSessionResults(sessionId);
+                    setResults(r);
+                } catch {}
+            })();
+        }, POLL_MS);
+        return () => window.clearInterval(id);
+    }, [sessionId, quizDetail]);
+
+    useEffect(() => {
+        const exp = results?.session.expiresAt;
+        if (!exp) {
+            return;
+        }
+        const ends = Date.parse(exp);
+        const tick = () => setRemainingMs(Math.max(0, ends - Date.now()));
+        tick();
+        const id = window.setInterval(tick, 1000);
+        return () => window.clearInterval(id);
+    }, [results?.session.expiresAt]);
 
     useEffect(() => {
         setQuestionIndex(0);
     }, [categoryFilter]);
 
+    const adminQuestions: AdminQuestionRow[] = useMemo(() => {
+        if (!quizDetail) {
+            return [];
+        }
+        return quizDetail.questions.map((q, originalIndex) => ({
+            originalIndex,
+            category: normalizeQuestionCategory(q.category),
+            prompt: q.prompt,
+            answerLabels: q.answers.map((a) => a.label),
+        }));
+    }, [quizDetail]);
+
+    const filteredQuestions = useMemo(() => {
+        if (categoryFilter === "all") {
+            return adminQuestions;
+        }
+        return adminQuestions.filter((q) => q.category === categoryFilter);
+    }, [adminQuestions, categoryFilter]);
+
     const activeQuestion =
         filteredQuestions.length > 0
-            ? filteredQuestions[Math.min(questionIndex, filteredQuestions.length - 1)]
-            : MOCK_QUESTIONS[0];
+            ? filteredQuestions[Math.min(questionIndex, filteredQuestions.length - 1)]!
+            : null;
 
-    const [endsAt] = useState(() => Date.now() + (52 * 3600 + 40 * 60 + 10) * 1000);
-    const [remainingMs, setRemainingMs] = useState(() => endsAt - Date.now());
+    const participantCount = results?.players.length ?? 0;
 
-    useEffect(() => {
-        const id = window.setInterval(() => {
-            setRemainingMs(Math.max(0, endsAt - Date.now()));
-        }, 1000);
-        return () => window.clearInterval(id);
-    }, [endsAt]);
+    const answeredThisQuestion =
+        results && activeQuestion
+            ? (results.questionCounters[activeQuestion.originalIndex] ?? 0)
+            : 0;
 
-    const radarData = useMemo(
-        () =>
-            RADAR_AXIS_ORDER.map((id) => {
+    const barRows = useMemo(() => {
+        if (!results || !activeQuestion) {
+            return [];
+        }
+        const counts = countAnswersPerOption(
+            results.players,
+            activeQuestion.originalIndex,
+            activeQuestion.answerLabels.length,
+        );
+        const denom = Math.max(1, participantCount);
+        return activeQuestion.answerLabels.map((label, i) => ({
+            label,
+            pct: Math.round(((counts[i] ?? 0) / denom) * 100),
+        }));
+    }, [results, activeQuestion, participantCount]);
+
+    const radarData = useMemo(() => {
+        if (!results) {
+            return RADAR_AXIS_ORDER.map((id) => {
                 const meta = PRIVILEGE_CATEGORIES.find((c) => c.id === id)!;
-                return {
-                    subject: meta.label,
-                    score: RADAR_SCORES_BY_CATEGORY[id],
-                };
-            }),
-        [],
-    );
+                return { subject: meta.label, score: 0 };
+            });
+        }
+        const n = Math.max(1, results.players.length);
+        return RADAR_AXIS_ORDER.map((id) => {
+            const meta = PRIVILEGE_CATEGORIES.find((c) => c.id === id)!;
+            const sum = results.aggregate.scores[id] ?? 0;
+            const avg = sum / n;
+            const score = Math.min(10, Math.max(0, avg));
+            return { subject: meta.label, score };
+        });
+    }, [results]);
+
+    const joinCodeDisplay = results?.session.code ?? state?.joinCode;
 
     const goPrev = () => {
-        setQuestionIndex((i) => (filteredQuestions.length ? (i - 1 + filteredQuestions.length) % filteredQuestions.length : 0));
+        setQuestionIndex((i) =>
+            filteredQuestions.length ? (i - 1 + filteredQuestions.length) % filteredQuestions.length : 0,
+        );
     };
 
     const goNext = () => {
@@ -206,21 +286,36 @@ const AdminView: React.FC = () => {
     };
 
     const handleDownloadCsv = () => {
-        const rows = [
-            ["Session ID", sessionId ?? ""],
-            ["Session name", sessionName],
-            ["Participants", String(PARTICIPANT_TOTAL)],
-            ["Question", activeQuestion.prompt],
-            ...activeQuestion.answerOptions.map((o) => [o.label, `${o.pct}%`]),
-        ];
-        const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `session-${sessionId ?? "export"}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        if (!sessionId) {
+            return;
+        }
+        setCsvBusy(true);
+        void (async () => {
+            try {
+                await downloadAdminSessionCsv(sessionId, `session-${sessionId}`);
+            } catch (e) {
+                setLoadError(e instanceof Error ? e.message : "CSV download failed");
+            } finally {
+                setCsvBusy(false);
+            }
+        })();
+    };
+
+    const handleEndSession = () => {
+        if (!sessionId) {
+            return;
+        }
+        setEndBusy(true);
+        void (async () => {
+            try {
+                await postAdminEndSession(sessionId);
+                navigate(`/admin/${sessionId}/ended`, { state: { sessionName } });
+            } catch (e) {
+                setLoadError(e instanceof Error ? e.message : "Could not end session");
+            } finally {
+                setEndBusy(false);
+            }
+        })();
     };
 
     if (!sessionId) {
@@ -267,216 +362,244 @@ const AdminView: React.FC = () => {
             >
                 <Header title="Daily data privileges" />
 
-                <div
-                    style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        gap: 16,
-                        marginBottom: 28,
-                        color: colors.darkText,
-                    }}
-                >
-                    <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>
-                        <div>Session {sessionId}</div>
-                        <div style={{ fontWeight: 600 }}>&quot;{sessionName}&quot;</div>
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700, marginLeft: "auto" }}>
-                        {PARTICIPANT_TOTAL} participants
-                    </div>
-                </div>
+                {initialLoad && (
+                    <p style={{ textAlign: "center", color: colors.darkText }}>Loading session…</p>
+                )}
 
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
-                        gap: 24,
-                        alignItems: "stretch",
-                    }}
-                >
-                    <section style={{ ...cardShell, display: "flex", flexDirection: "column", minHeight: 420 }}>
-                        <div style={{ marginBottom: 16 }}>
-                            <label htmlFor="admin-filter" style={{ fontSize: 14, fontWeight: 700, marginRight: 8 }}>
-                                Filter
-                            </label>
-                            <select
-                                id="admin-filter"
-                                value={categoryFilter}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-                                    setCategoryFilter(v === "all" ? "all" : (v as QuestionCategory));
-                                }}
-                                style={{
-                                    padding: "8px 12px",
-                                    borderRadius: 8,
-                                    border: `1px solid ${colors.inputBorder}`,
-                                    fontSize: 15,
-                                    fontFamily: "inherit",
-                                    fontWeight: 600,
-                                    maxWidth: "100%",
-                                }}
-                            >
-                                <option value="all">Category: All</option>
-                                {PRIVILEGE_CATEGORIES.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        Category: {c.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                {!initialLoad && loadError && (
+                    <p style={{ textAlign: "center", color: "#b00020", marginBottom: 16 }}>{loadError}</p>
+                )}
 
-                        <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 17, color: colors.darkText }}>
-                            Question: {activeQuestion.prompt}
-                        </p>
-                        <p style={{ margin: "0 0 16px", fontSize: 14, color: "#555" }}>
-                            Category: {activeQuestion.categoryLabel}
-                        </p>
-                        <p style={{ margin: "0 0 16px", fontWeight: 700, fontSize: 15 }}>
-                            {ANSWERED_COUNT}/{PARTICIPANT_TOTAL} answers
-                        </p>
-
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-                            {activeQuestion.answerOptions.map((row) => (
-                                <div key={row.label}>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            fontSize: 15,
-                                            fontWeight: 600,
-                                            marginBottom: 4,
-                                        }}
-                                    >
-                                        <span>{row.label}</span>
-                                        <span>{row.pct}%</span>
-                                    </div>
-                                    <div
-                                        style={{
-                                            height: 14,
-                                            background: "#eee",
-                                            borderRadius: 7,
-                                            overflow: "hidden",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                width: `${row.pct}%`,
-                                                height: "100%",
-                                                background: BAR_ORANGE,
-                                                borderRadius: 7,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                {!initialLoad && results && activeQuestion && (
+                    <>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "flex-start",
+                                justifyContent: "space-between",
+                                gap: 16,
+                                marginBottom: 28,
+                                color: colors.darkText,
+                            }}
+                        >
+                            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>
+                                <div>Session {sessionId}</div>
+                                {joinCodeDisplay && (
+                                    <div style={{ fontWeight: 600 }}>Join code: {joinCodeDisplay}</div>
+                                )}
+                                <div style={{ fontWeight: 600 }}>&quot;{sessionName}&quot;</div>
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 700, marginLeft: "auto" }}>
+                                {participantCount} participant{participantCount === 1 ? "" : "s"}
+                            </div>
                         </div>
 
                         <div
                             style={{
-                                display: "flex",
-                                justifyContent: "center",
-                                gap: 20,
-                                marginTop: 24,
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
+                                gap: 24,
+                                alignItems: "stretch",
                             }}
                         >
-                            <button type="button" style={tealRoundButton} onClick={goPrev} aria-label="Previous question">
-                                ←
-                            </button>
-                            <button type="button" style={tealRoundButton} onClick={goNext} aria-label="Next question">
-                                →
-                            </button>
-                        </div>
-                    </section>
+                            <section style={{ ...cardShell, display: "flex", flexDirection: "column", minHeight: 420 }}>
+                                <div style={{ marginBottom: 16 }}>
+                                    <label htmlFor="admin-filter" style={{ fontSize: 14, fontWeight: 700, marginRight: 8 }}>
+                                        Filter
+                                    </label>
+                                    <select
+                                        id="admin-filter"
+                                        value={categoryFilter}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setCategoryFilter(v === "all" ? "all" : (v as QuestionCategory));
+                                        }}
+                                        style={{
+                                            padding: "8px 12px",
+                                            borderRadius: 8,
+                                            border: `1px solid ${colors.inputBorder}`,
+                                            fontSize: 15,
+                                            fontFamily: "inherit",
+                                            fontWeight: 600,
+                                            maxWidth: "100%",
+                                        }}
+                                    >
+                                        <option value="all">Category: All</option>
+                                        {PRIVILEGE_CATEGORIES.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                Category: {c.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                    <section style={{ ...cardShell, minHeight: 420 }}>
-                        <h2
-                            style={{
-                                margin: "0 0 8px",
-                                fontSize: "1.1rem",
-                                fontWeight: 700,
-                                color: colors.darkText,
-                            }}
-                        >
-                            Average privilege levels of {ANSWERED_COUNT} participants
-                        </h2>
-                        <div style={{ width: "100%", height: 360 }}>
-                            <ResponsiveContainerC width="100%" height="100%">
-                                <RadarChartC cx="50%" cy="52%" outerRadius="72%" data={radarData}>
-                                    <PolarGridC stroke="#ccc" />
-                                    <PolarAngleAxisC
-                                        dataKey="subject"
-                                        tick={{ fill: colors.darkText, fontSize: 12, fontWeight: 600 }}
-                                    />
-                                    <PolarRadiusAxisC
-                                        angle={90}
-                                        domain={[0, 8]}
-                                        tickCount={5}
-                                        tick={{ fill: "#666", fontSize: 11 }}
-                                    />
-                                    <RadarC
-                                        name="Privilege level"
-                                        dataKey="score"
-                                        stroke={CHART_YELLOW}
-                                        fill={CHART_YELLOW}
-                                        fillOpacity={0.45}
-                                        strokeWidth={2}
-                                    />
-                                    <LegendC
-                                        verticalAlign="top"
-                                        align="center"
-                                        wrapperStyle={{ paddingBottom: 8 }}
-                                        iconType="circle"
-                                        iconSize={10}
-                                        formatter={(value: string) => (
-                                            <span style={{ color: colors.darkText, fontWeight: 600, fontSize: 14 }}>
-                                                {value}
-                                            </span>
-                                        )}
-                                    />
-                                </RadarChartC>
-                            </ResponsiveContainerC>
+                                <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 17, color: colors.darkText }}>
+                                    Question: {activeQuestion.prompt}
+                                </p>
+                                <p style={{ margin: "0 0 16px", fontSize: 14, color: "#555" }}>
+                                    Category: {getPrivilegeCategoryDisplay(activeQuestion.category).label} privilege
+                                </p>
+                                <p style={{ margin: "0 0 16px", fontWeight: 700, fontSize: 15 }}>
+                                    {answeredThisQuestion}/{participantCount} answers
+                                </p>
+
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+                                    {barRows.map((row) => (
+                                        <div key={row.label}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    fontSize: 15,
+                                                    fontWeight: 600,
+                                                    marginBottom: 4,
+                                                }}
+                                            >
+                                                <span>{row.label}</span>
+                                                <span>{row.pct}%</span>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    height: 14,
+                                                    background: "#eee",
+                                                    borderRadius: 7,
+                                                    overflow: "hidden",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        width: `${row.pct}%`,
+                                                        height: "100%",
+                                                        background: BAR_ORANGE,
+                                                        borderRadius: 7,
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        gap: 20,
+                                        marginTop: 24,
+                                    }}
+                                >
+                                    <button type="button" style={tealRoundButton} onClick={goPrev} aria-label="Previous question">
+                                        ←
+                                    </button>
+                                    <button type="button" style={tealRoundButton} onClick={goNext} aria-label="Next question">
+                                        →
+                                    </button>
+                                </div>
+                            </section>
+
+                            <section style={{ ...cardShell, minHeight: 420 }}>
+                                <h2
+                                    style={{
+                                        margin: "0 0 8px",
+                                        fontSize: "1.1rem",
+                                        fontWeight: 700,
+                                        color: colors.darkText,
+                                    }}
+                                >
+                                    Average privilege levels ({participantCount} joined)
+                                </h2>
+                                <div style={{ width: "100%", height: 360 }}>
+                                    <ResponsiveContainerC width="100%" height="100%">
+                                        <RadarChartC cx="50%" cy="52%" outerRadius="72%" data={radarData}>
+                                            <PolarGridC stroke="#ccc" />
+                                            <PolarAngleAxisC
+                                                dataKey="subject"
+                                                tick={{ fill: colors.darkText, fontSize: 12, fontWeight: 600 }}
+                                            />
+                                            <PolarRadiusAxisC
+                                                angle={90}
+                                                domain={[0, 10]}
+                                                tickCount={6}
+                                                tick={{ fill: "#666", fontSize: 11 }}
+                                            />
+                                            <RadarC
+                                                name="Privilege level"
+                                                dataKey="score"
+                                                stroke={CHART_YELLOW}
+                                                fill={CHART_YELLOW}
+                                                fillOpacity={0.45}
+                                                strokeWidth={2}
+                                            />
+                                            <LegendC
+                                                verticalAlign="top"
+                                                align="center"
+                                                wrapperStyle={{ paddingBottom: 8 }}
+                                                iconType="circle"
+                                                iconSize={10}
+                                                formatter={(value: string) => (
+                                                    <span style={{ color: colors.darkText, fontWeight: 600, fontSize: 14 }}>
+                                                        {value}
+                                                    </span>
+                                                )}
+                                            />
+                                        </RadarChartC>
+                                    </ResponsiveContainerC>
+                                </div>
+                            </section>
                         </div>
-                    </section>
-                </div>
+                    </>
+                )}
             </main>
 
-            <footer
-                style={{
-                    position: "sticky",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 16,
-                    padding: "16px 24px",
-                    background: colors.pageBackground,
-                    borderTop: "1px solid rgba(0,0,0,0.06)",
-                    maxWidth: 1160,
-                    width: "100%",
-                    margin: "0 auto",
-                    boxSizing: "border-box",
-                }}
-            >
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: colors.darkText }}>
-                    Session time left: {formatTimeLeft(remainingMs)}
-                </p>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <button type="button" style={footerActionButton} onClick={handleDownloadCsv}>
-                        Download CSV
-                    </button>
-                    <button
-                        type="button"
-                        style={footerActionButton}
-                        onClick={() => navigate(`/admin/${sessionId}/ended`, { state: { sessionName } })}
-                    >
-                        End session
-                    </button>
-                </div>
-            </footer>
+            {!initialLoad && results && (
+                <footer
+                    style={{
+                        position: "sticky",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        padding: "16px 24px",
+                        background: colors.pageBackground,
+                        borderTop: "1px solid rgba(0,0,0,0.06)",
+                        maxWidth: 1160,
+                        width: "100%",
+                        margin: "0 auto",
+                        boxSizing: "border-box",
+                    }}
+                >
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: colors.darkText }}>
+                        Session time left: {formatTimeLeft(remainingMs)}
+                        {results.session.ttlHours ? (
+                            <span style={{ fontWeight: 600, fontSize: 14, marginLeft: 8, color: "#555" }}>
+                                ({results.session.ttlHours}h limit)
+                            </span>
+                        ) : null}
+                    </p>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <button
+                            type="button"
+                            style={footerActionButton}
+                            onClick={handleDownloadCsv}
+                            disabled={csvBusy}
+                        >
+                            {csvBusy ? "…" : "Download CSV"}
+                        </button>
+                        <button
+                            type="button"
+                            style={footerActionButton}
+                            onClick={handleEndSession}
+                            disabled={endBusy}
+                        >
+                            {endBusy ? "…" : "End session"}
+                        </button>
+                    </div>
+                </footer>
+            )}
         </div>
     );
 };

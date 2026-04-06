@@ -19,7 +19,6 @@ export function getPlayerResult(req: Request, res: Response) {
         if (raw === null || raw === undefined) {
             answers.push(null);
         } else {
-            // SqLite might be weird with types. So enforce them
             const numeric = typeof raw === "number" ? raw : Number(raw);
             answers.push(Number.isNaN(numeric) ? null : numeric);
         }
@@ -27,7 +26,6 @@ export function getPlayerResult(req: Request, res: Response) {
 
     const answeredCount = answers.filter((a) => a !== null).length;
     if (answeredCount < totalQuestions) {
-        // All questions not answered so send pending
         return res.json({
             pending: true,
             answered: answeredCount,

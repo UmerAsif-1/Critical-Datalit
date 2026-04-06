@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import http from "http";
-import app from "../../backend/src/app"; // adjust path if changes
+import app from "../../backend/src/app";
 
 let server: http.Server;
 
@@ -28,14 +28,13 @@ describe("Quizzes API (metadata only)", () => {
     });
 
     it("GET /api/quizzes/:id returns metadata detail without scoring internals", async () => {
-        // end the request with the id of example. Currently foo
-        const res = await request(server).get("/api/quizzes/foo");
+        const res = await request(server).get("/api/quizzes/daily-data-privileges");
         expect(res.status).toBe(200);
 
         const q = res.body;
         expect(q).toEqual(
             expect.objectContaining({
-                id: "foo",
+                id: "daily-data-privileges",
                 title: expect.any(String),
                 questions: expect.any(Array),
             })

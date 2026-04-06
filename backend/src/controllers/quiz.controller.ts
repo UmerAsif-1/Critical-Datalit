@@ -18,6 +18,7 @@ interface PublicQuizQuestion {
     id: string;
     prompt: string;
     type: "single-choice";
+    category?: string;
     answers: PublicQuizAnswer[];
 }
 
@@ -28,7 +29,6 @@ interface PublicQuizDetail {
 }
 
 function toPublicDetail(q: Quiz): PublicQuizDetail {
-    // q=Quiz, qq=QuizQuestion
     return {
         id: q.id,
         title: q.title,
@@ -36,6 +36,7 @@ function toPublicDetail(q: Quiz): PublicQuizDetail {
             id: qq.id,
             prompt: qq.prompt,
             type: qq.type,
+            ...(qq.category ? { category: qq.category } : {}),
             answers: qq.answers.map((a) => ({ id: a.id, label: a.label })),
         })),
     };

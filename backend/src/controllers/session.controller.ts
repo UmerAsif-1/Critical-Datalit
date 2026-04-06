@@ -4,8 +4,6 @@ import {getQuizById, quizzes} from "../quizzes";
 import {generateSessionId, generateJoinCode, isValidJoinCode} from "../utils/generateSessionCodes";
 import {setAdminCookie, setUserCookie} from "../utils/cookies";
 
-const MAX_QUESTIONS = 50; // This is the temp value in schema.sql
-
 interface SessionRow{
     id:string,
     quiz_id: string
@@ -28,7 +26,7 @@ export function createSession(req: Request,res: Response) {
         return res.status(400).json({message: "Invalid quiz id"});
     }
     const questionCount = quiz.questions.length;
-    let adminCookie = generateSessionId(); // TODO: Implement cookie-creator and call it
+    let adminCookie = generateSessionId();
 
     const sessionId = generateSessionId();
     const questionCols: string[] = [];
@@ -38,7 +36,7 @@ export function createSession(req: Request,res: Response) {
     let joinCode: string | null = null;
     while (true) {
         const code = generateJoinCode();
-        adminCookie = generateSessionId(); // TODO: Implement cookie-creator and call it
+        adminCookie = generateSessionId();
         try {
             const questionCols = quiz.questions.map((_, i) => `question_${i + 1}`);
             const questionPlaceholders = questionCols.map(() => "?");
@@ -111,7 +109,7 @@ export function joinSession(req: Request, res: Response) {
     const columnString = ["user_cookie", "session_id", ...answerCols].join(", ");
     const placeHolders = new Array(answerCols.length + 2).fill("?").join(', ');
 
-    const cookie = generateSessionId(); // TODO: Implement cookie-creator and call it
+    const cookie = generateSessionId();
     const values = [cookie, session.id, ...Array(questionCount).fill(null)];
 
     db.prepare(`
@@ -123,6 +121,7 @@ export function joinSession(req: Request, res: Response) {
 
     return res.status(200).json({
         sessionId: session.id,
-        playUrl: `/session/${session.id}/play`
+        quizId: session.quiz_id,
+        playUrl: `/session/${session.id}/play`,
     });
 }

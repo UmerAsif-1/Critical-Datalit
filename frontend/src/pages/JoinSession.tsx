@@ -6,20 +6,22 @@ import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
 import JoinSessionCategoryIcons from "../components/JoinSessionCategoryIcons/JoinSessionCategoryIcons";
+import { DEFAULT_QUIZ_ID } from "../constants/quiz";
 
 export type JoinSessionLocationState = {
     sessionId: string;
     joinCode: string;
     playUrl: string;
+    quizId: string;
 };
 
 const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
 
-// Dev-only state when /join-session is opened with no router state.
 const DEV_JOIN_SESSION_PREVIEW: JoinSessionLocationState = {
     sessionId: PLACEHOLDER_SESSION_ID,
     joinCode: "000000",
     playUrl: `/session/${PLACEHOLDER_SESSION_ID}/questions`,
+    quizId: DEFAULT_QUIZ_ID,
 };
 
 const HEADER_PURPLE = "#6500AD";
@@ -44,18 +46,19 @@ const JoinSession: React.FC = () => {
     const [language, setLanguage] = useState<Language>("EN");
 
     const isDev = process.env.NODE_ENV === "development";
-    const hasRealState = Boolean(state?.sessionId && state?.joinCode);
+    const hasRealState = Boolean(state?.sessionId && state?.joinCode && state?.quizId);
     const effective = hasRealState ? state! : isDev ? DEV_JOIN_SESSION_PREVIEW : null;
 
     if (!effective) {
         return <Navigate to="/MainView" replace />;
     }
 
-    const { joinCode, playUrl } = effective;
+    const { joinCode } = effective;
 
     const startQuiz = () => {
-        const path = playUrl.startsWith("/") ? playUrl : `/${playUrl}`;
-        navigate(path, { state: { joinCode } });
+        navigate(`/session/${effective.sessionId}/questions`, {
+            state: { joinCode, quizId: effective.quizId },
+        });
     };
 
     return (

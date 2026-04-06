@@ -6,12 +6,11 @@ import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
 import { colors } from "../theme/colors";
+import { joinSessionRequest } from "../services/api";
 
 const HEADER_PURPLE = "#6500AD";
 const LIGHT_PURPLE_BG = "#FDF9FF";
 const DARK_BLACK = "#222222";
-
-const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
 
 const cardStyle: React.CSSProperties = {
     width: 320,
@@ -60,13 +59,21 @@ const MainView: React.FC = () => {
             return;
         }
         setJoinError(null);
-        navigate("/join-session", {
-            state: {
-                sessionId: PLACEHOLDER_SESSION_ID,
-                joinCode: code,
-                playUrl: `/session/${PLACEHOLDER_SESSION_ID}/questions`,
-            },
-        });
+        void (async () => {
+            try {
+                const data = await joinSessionRequest(code);
+                navigate("/join-session", {
+                    state: {
+                        sessionId: data.sessionId,
+                        joinCode: code,
+                        playUrl: data.playUrl,
+                        quizId: data.quizId,
+                    },
+                });
+            } catch (e) {
+                setJoinError(e instanceof Error ? e.message : "Could not join session");
+            }
+        })();
     };
 
     const createSession = () => {

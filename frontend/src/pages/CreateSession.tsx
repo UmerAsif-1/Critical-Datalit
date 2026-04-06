@@ -7,12 +7,9 @@ import PageCard from "../components/PageCard/PageCard";
 import LabeledInput from "../components/LabeledInput/LabeledInput";
 import PrimaryFormButton from "../components/PrimaryFormButton/PrimaryFormButton";
 import { colors } from "../theme/colors";
+import { DEFAULT_QUIZ_ID } from "../constants/quiz";
+import { createSessionRequest } from "../services/api";
 import type { AdminViewLocationState } from "./AdminView";
-
-function generateSessionCode(): string {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
 
 const createSessionColumnStyle: React.CSSProperties = {
     flex: 1,
@@ -32,15 +29,30 @@ const CreateSession: React.FC = () => {
     const navigate = useNavigate();
     const { language, setLanguage } = useContext(AppContext);
     const [sessionName, setSessionName] = useState("");
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!sessionName.trim()) {
             return;
         }
-        const sessionId = generateSessionCode();
-        const state: AdminViewLocationState = { sessionName: sessionName.trim() };
-        navigate(`/admin/${sessionId}`, { state });
+        setSubmitError(null);
+        setIsSubmitting(true);
+        void (async () => {
+            try {
+                const created = await createSessionRequest(DEFAULT_QUIZ_ID);
+                const state: AdminViewLocationState = {
+                    sessionName: sessionName.trim(),
+                    joinCode: created.joinCode,
+                };
+                navigate(`/admin/${created.sessionId}`, { state });
+            } catch (err) {
+                setSubmitError(err instanceof Error ? err.message : "Could not create session");
+            } finally {
+                setIsSubmitting(false);
+            }
+        })();
     };
 
     return (
@@ -68,8 +80,11 @@ const CreateSession: React.FC = () => {
                             onChange={setSessionName}
                             placeholder="e.g.. Class Quiz Feb 21 2026"
                         />
-                        <PrimaryFormButton type="submit" disabled={!sessionName.trim()}>
-                            Create Session
+                        {submitError && (
+                            <p style={{ color: "#b00020", fontSize: 14, marginBottom: 12 }}>{submitError}</p>
+                        )}
+                        <PrimaryFormButton type="submit" disabled={!sessionName.trim() || isSubmitting}>
+                            {isSubmitting ? "Creating…" : "Create Session"}
                         </PrimaryFormButton>
                     </form>
                 </PageCard>

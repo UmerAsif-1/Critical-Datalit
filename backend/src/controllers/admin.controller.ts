@@ -2,9 +2,16 @@ import type { Request, Response } from "express";
 import { db } from "../db";
 import { quizzes } from "../quizzes";
 import { computeTraitTotals, computeResult } from "../quizzes/engine";
+import { SESSION_TTL_HOURS } from "../config/session";
+
+function sessionExpiresAtIso(createdAt: string): string {
+    const normalized = createdAt.includes("T") ? createdAt : createdAt.replace(" ", "T");
+    const ms = Date.parse(normalized);
+    const base = Number.isNaN(ms) ? Date.now() : ms;
+    return new Date(base + SESSION_TTL_HOURS * 3600 * 1000).toISOString();
+}
 
 export function getSessionResults(req: Request, res: Response) {
-    // Middleware changes makes all id checks so Session EXISTS
     const session = req.admin!.session;
 
     const quiz = quizzes.find(q => q.id === session.quiz_id);
@@ -18,10 +25,6 @@ export function getSessionResults(req: Request, res: Response) {
         .prepare(`SELECT * FROM game WHERE session_id = ?`)
         .all(session.id) as Array<Record<string, unknown>>;
 
-    // Build per-player answer arrays
-    // - unanswered -> null
-    // - non-integer / NaN -> null
-    // - out-of-bounds -> null (and count as warning)
     let invalidIndexCount = 0;
 
     const playerResults = players.map((p) => {
@@ -51,13 +54,10 @@ export function getSessionResults(req: Request, res: Response) {
         };
     });
 
-    // Per-question counters from sessions table
     const questionCounters = Array.from({ length: questionCount }, (_, i) =>
         Number((session as any)[`question_${i + 1}`] || 0)
     );
 
-    // Aggregate trait totals across all players
-    // As in ALL traitScores summed up for all answers!
     const aggregateScores: Record<string, number> = {};
     for (const t of quiz.resultLogic.traits) aggregateScores[t.id] = 0;
 
@@ -70,16 +70,17 @@ export function getSessionResults(req: Request, res: Response) {
 
     const aggregateResult = computeResult(quiz, aggregateScores);
 
-    // return everything
     return res.json({
         session: {
             id: session.id,
             code: session.join_code,
             quizId: session.quiz_id,
             createdAt: session.created_at,
+            ttlHours: SESSION_TTL_HOURS,
+            expiresAt: sessionExpiresAtIso(session.created_at),
         },
         questionCounters,
-        players: playerResults, // answers are indices (or null);
+        players: playerResults,
         aggregate: {
             scores: aggregateScores,
             result: aggregateResult,
@@ -95,7 +96,6 @@ function csvEscape(value: string): string {
     return value;
 }
 
-// Read all session data, convert it into a csv format and send it. This must be called before end
 export function exportSessionCsv(req: Request, res: Response) {
     const session = req.admin!.session;
 
@@ -153,7 +153,6 @@ export function exportSessionCsv(req: Request, res: Response) {
     return res.send(csv);
 }
 
-// Ends the session.
 export function endSession(req: Request, res: Response) {
     const session = req.admin!.session;
     const info = db.prepare(`DELETE FROM sessions WHERE id = ?`).run(session.id);

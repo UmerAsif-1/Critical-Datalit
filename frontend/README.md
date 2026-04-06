@@ -1,4 +1,22 @@
-# Getting Started with Create React App
+# Critical-Datalit — frontend
+
+React UI for **Daily data privileges**. The API lives in `../backend/`.
+
+## Run with the API (recommended)
+
+From the **repo root**, start backend and frontend together:
+
+```bash
+./run-local-dev.sh
+```
+
+Same as `npm run dev` from the repo root.
+
+See the **[root README](../README.md)** for ports, proxy, and troubleshooting.
+
+---
+
+## Create React App — scripts
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

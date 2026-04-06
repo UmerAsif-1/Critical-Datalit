@@ -1,0 +1,8 @@
+{
+  "name": "critical-datalit",
+  "private": true,
+  "description": "Daily data privileges — backend + frontend monorepo",
+  "scripts": {
+    "dev": "bash run-local-dev.sh"
+  }
+}

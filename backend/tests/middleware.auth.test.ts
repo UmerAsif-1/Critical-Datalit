@@ -10,17 +10,12 @@ import {
     requireAdminBySessionId,
 } from "../src/middleware/auth";
 
-// Build a small test app that:
-// 1) uses cookie/json parsing
-// 2) mounts the production app under /
-// 3) exposes a few test-only endpoints to hit the middlewares directly
 const testApp = (() => {
     const a = express();
     a.use(express.json());
     a.use(cookieParser());
     a.use(app);
 
-    // Test-only endpoints that simply return what middleware resolved
     a.post("/test/user/body", requireUserBySessionIdFromBody, (req, res) => {
         res.json({
             ok: true,
@@ -55,7 +50,6 @@ const testApp = (() => {
     return a;
 })();
 
-// Small helper: find a cookie by name and return only "name=value"
 function pickCookie(setCookieHeader: string[] | string | undefined, name: string): string | undefined {
     const arr = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader].filter(Boolean) as string[];
     const hit = arr.find(h => h?.startsWith(`${name}=`));
@@ -65,16 +59,15 @@ function pickCookie(setCookieHeader: string[] | string | undefined, name: string
 describe("Auth middleware", () => {
     let sessionId: string;
     let joinCode: string;
-    let userCookie: string;  // "__Host-user_token=<uuid>"
-    let adminCookie: string; // "__Host-admin_token=<uuid>"
+    let userCookie: string;
+    let adminCookie: string;
 
     beforeAll(async () => {
         resetDb();
 
-        // Create session to obtain admin cookie + join code
         const createRes = await request(testApp)
             .post("/api/sessions/create")
-            .send({ quizId: "foo" })
+            .send({ quizId: "daily-data-privileges" })
             .expect(200);
 
         sessionId = createRes.body.sessionId;
@@ -83,7 +76,6 @@ describe("Auth middleware", () => {
         adminCookie = pickCookie(createRes.headers["set-cookie"], "__Host-admin_token")!;
         expect(adminCookie).toBeDefined();
 
-        // Join session to obtain user cookie
         const joinRes = await request(testApp)
             .post("/api/sessions/join")
             .send({ code: joinCode })
@@ -92,7 +84,6 @@ describe("Auth middleware", () => {
         userCookie = pickCookie(joinRes.headers["set-cookie"], "__Host-user_token")!;
         expect(userCookie).toBeDefined();
 
-        // Double-check same sessionId
         expect(joinRes.body.sessionId).toBe(sessionId);
     });
 
@@ -165,7 +156,6 @@ describe("Auth middleware", () => {
         });
 
         it("uses only the first value when sessionId is provided as an array", async () => {
-            // Here we pass two values; middleware should pick the first or reject.
             const res = await request(testApp)
                 .get(`/test/user/query?sessionId=${encodeURIComponent(sessionId)}&sessionId=should_be_ignored`)
                 .set("Cookie", userCookie)

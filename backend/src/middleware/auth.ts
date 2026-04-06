@@ -4,17 +4,10 @@ import { getAdminUuid, getUserUuid } from "../utils/cookies";
 import { GameRow, SessionRow } from "../types/http";
 import {isValidJoinCode} from "../utils/generateSessionCodes";
 
-// Ts helper function to stop ts from complaining about String | String[]
 function firstQueryString(val: unknown): string | undefined {
     if (Array.isArray(val)) return typeof val[0] === "string" ? val[0] : undefined;
     return typeof val === "string" ? val : undefined;
 }
-
-/**
- * This is where the skeletons are buried.
- * See @How Middleware works in documentation to understand this file
- * If the docs do not exist. DM me and I can hop on a discord call and explain this
- */
 
 export function requireAdminByJoinCode(req: Request, res: Response, next: NextFunction) {
     const adminToken = getAdminUuid(req);

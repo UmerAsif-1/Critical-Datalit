@@ -6,11 +6,12 @@ import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
 import QuestionCategoryBadge from "../components/QuestionCategoryBadge/QuestionCategoryBadge";
-import { scoresFromSubmittedAnswers } from "../services/answerScoring";
+import { getGameResult, submitGameAnswer } from "../services/api";
 import {
-    PLACEHOLDER_SESSION_QUESTIONS,
-    USE_REMOTE_SESSION_QUESTIONS,
-    fetchSessionQuestions,
+    fetchFirstQuizId,
+    fetchQuizQuestions,
+    likertValueToAnswerIndex,
+    traitsToScoresByCategory,
 } from "../services/sessionQuestions";
 import type { SessionQuestion } from "../types/sessionQuestion";
 import type { UserResultsLocationState } from "./UserResults";
@@ -30,6 +31,7 @@ const ANSWER_OPTIONS: { value: string; label: string }[] = [
 
 export type QuestionsLocationState = {
     joinCode?: string;
+    quizId?: string;
 };
 
 const Questions: React.FC = () => {
@@ -39,11 +41,10 @@ const Questions: React.FC = () => {
     const state = location.state as QuestionsLocationState | undefined;
 
     const [language, setLanguage] = useState<Language>("EN");
-    const [questions, setQuestions] = useState<SessionQuestion[]>(() =>
-        USE_REMOTE_SESSION_QUESTIONS ? [] : PLACEHOLDER_SESSION_QUESTIONS,
-    );
+    const [questions, setQuestions] = useState<SessionQuestion[]>([]);
     const [loadError, setLoadError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(USE_REMOTE_SESSION_QUESTIONS);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -55,30 +56,36 @@ const Questions: React.FC = () => {
         if (!sessionId) {
             return;
         }
+        let cancelled = false;
         setCurrentQuestionIndex(0);
         setAnswers({});
         setCompletedQuestionIndices(new Set());
         setLoadError(null);
-
-        if (!USE_REMOTE_SESSION_QUESTIONS) {
-            setQuestions(PLACEHOLDER_SESSION_QUESTIONS);
-            setIsLoading(false);
-            return;
-        }
-
         setIsLoading(true);
         setQuestions([]);
 
-        fetchSessionQuestions(sessionId)
-            .then((list) => {
-                setQuestions(list);
-                setIsLoading(false);
-            })
-            .catch((err) => {
-                setLoadError(err instanceof Error ? err.message : "Failed to load questions");
-                setIsLoading(false);
-            });
-    }, [sessionId]);
+        (async () => {
+            try {
+                const quizId = state?.quizId ?? (await fetchFirstQuizId());
+                const list = await fetchQuizQuestions(quizId);
+                if (!cancelled) {
+                    setQuestions(list);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setLoadError(e instanceof Error ? e.message : "Failed to load questions");
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [sessionId, state?.quizId]);
 
     const totalQuestions = questions.length;
     const selected = answers[currentQuestionIndex] ?? null;
@@ -104,29 +111,47 @@ const Questions: React.FC = () => {
 
     const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1;
 
-    const goNextOrSubmit = () => {
-        if (!selected || !current) return;
-        console.log("Save answer", {
-            sessionId,
-            questionId: current.id,
-            category: current.category,
-            selected,
-        });
+    const goNextOrSubmit = async () => {
+        if (!selected || !current || isSubmitting) {
+            return;
+        }
+        setIsSubmitting(true);
+        setLoadError(null);
+        const qIdx = currentQuestionIndex + 1;
+        const answerIndex = likertValueToAnswerIndex(selected);
+        try {
+            await submitGameAnswer(sessionId, qIdx, answerIndex);
+        } catch (e) {
+            setLoadError(e instanceof Error ? e.message : "Submit failed");
+            setIsSubmitting(false);
+            return;
+        }
 
         setCompletedQuestionIndices((prev) => new Set(prev).add(currentQuestionIndex));
 
         if (!isLastQuestion) {
             setCurrentQuestionIndex((i) => i + 1);
+            setIsSubmitting(false);
             return;
         }
 
-        const finalAnswers = { ...answers, [currentQuestionIndex]: selected };
-        const scoresByCategory = scoresFromSubmittedAnswers(questions, finalAnswers);
-        const resultsState: UserResultsLocationState = {
-            joinCode: state?.joinCode,
-            scoresByCategory,
-        };
-        navigate(`/session/${sessionId}/results`, { state: resultsState });
+        try {
+            const result = await getGameResult(sessionId);
+            if (result.pending || !result.traits?.length) {
+                setLoadError("Could not load final results");
+                setIsSubmitting(false);
+                return;
+            }
+            const scoresByCategory = traitsToScoresByCategory(result.traits);
+            const resultsState: UserResultsLocationState = {
+                joinCode: state?.joinCode,
+                scoresByCategory,
+            };
+            navigate(`/session/${sessionId}/results`, { state: resultsState });
+        } catch (e) {
+            setLoadError(e instanceof Error ? e.message : "Result failed");
+        }
+        setIsSubmitting(false);
     };
 
     const goPrevious = () => {
@@ -375,11 +400,11 @@ const Questions: React.FC = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={goNextOrSubmit}
-                                    disabled={!selected}
-                                    style={navButtonStyle(Boolean(selected))}
+                                    onClick={() => void goNextOrSubmit()}
+                                    disabled={!selected || isSubmitting}
+                                    style={navButtonStyle(Boolean(selected) && !isSubmitting)}
                                 >
-                                    {isLastQuestion ? "Submit" : "Next"}
+                                    {isSubmitting ? "…" : isLastQuestion ? "Submit" : "Next"}
                                 </button>
                             </div>
                         </>

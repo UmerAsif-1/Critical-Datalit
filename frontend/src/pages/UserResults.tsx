@@ -17,7 +17,6 @@ import InfoButton from "../components/InfoButton/InfoButton";
 import { PRIVILEGE_CATEGORIES } from "../constants/privilegeCategories";
 import type { QuestionCategory } from "../types/sessionQuestion";
 
-// Recharts + React 19: chart components typed loosely below.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const asChart = (C: unknown) => C as ComponentType<any>;
 const RadarChartC = asChart(RadarChart);
@@ -37,7 +36,6 @@ const CHART_YELLOW = "#E6C84A";
 const STORAGE_INFO_TEXT =
     "The results will be stored anonymously in the session database for maximum of 96 hours, after which they will be deleted.\n\nThe session admin can save the anonymous results to their computer before the 96 hour deadline.";
 
-// Radar chart vertex order (mockup).
 const RADAR_AXIS_ORDER: QuestionCategory[] = [
     "ability",
     "age",

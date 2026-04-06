@@ -1,11 +1,13 @@
 import { db } from "./db";
+import { SESSION_TTL_HOURS } from "./config/session";
 
-const TTL_HOURS = 96;
-const RUN_INTERVAL_MS = 60 * 60 * 1000; // every hour
+const RUN_INTERVAL_MS = 60 * 60 * 1000;
 
 function purgeExpiredSessions(): void {
     const result = db
-        .prepare(`DELETE FROM sessions WHERE created_at <= datetime('now', '-${TTL_HOURS} hours')`)
+        .prepare(
+            `DELETE FROM sessions WHERE created_at <= datetime('now', '-${SESSION_TTL_HOURS} hours')`,
+        )
         .run();
 
     if (result.changes > 0) {

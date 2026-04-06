@@ -1,8 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
-import fs from "fs"
+import fs from "fs";
 
-// TODO: Define the correct place for the db and give it a good name
 const DB_PATH = path.join(process.cwd(), "temp.db");
 
 
