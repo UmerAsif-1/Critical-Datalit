@@ -2,13 +2,12 @@ import React from "react";
 
 export type Language = "EN" | "FI";
 
-const HEADER_YELLOW = "#f2c94c"; // mustard yellow for selected
-const HEADER_UNSELECTED_BG = "#ffffff"; // white for unselected
+const HEADER_YELLOW = "#f2c94c";
+const HEADER_UNSELECTED_BG = "#ffffff";
 
 export interface LanguageSwitcherProps {
     selected: Language;
     onChange: (lang: Language) => void;
-    /** When true, pill-style: yellow selected, white unselected, black text */
     variant?: "default" | "header";
 }
 

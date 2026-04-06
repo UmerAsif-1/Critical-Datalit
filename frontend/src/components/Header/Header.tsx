@@ -3,7 +3,6 @@ import React from "react";
 interface HeaderProps {
     title: string;
     subtitle?: string;
-    /** Merged onto the title wrapper — use for page-specific positioning without changing MainView */
     wrapperStyle?: React.CSSProperties;
 }
 

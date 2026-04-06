@@ -56,7 +56,7 @@ const CreateSession: React.FC = () => {
             <AppTopBar language={language} onLanguageChange={setLanguage} />
 
             <div style={createSessionColumnStyle}>
-                <Header title="Critical DataLit" />
+                <Header title="Daily data privileges" />
                 <PageCard title="Create New Session">
                     <form onSubmit={handleSubmit}>
                         <LabeledInput

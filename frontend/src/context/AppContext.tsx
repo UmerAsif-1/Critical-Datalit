@@ -1,7 +1,5 @@
-// src/context/AppContext.tsx
 import React, { createContext, useState, ReactNode } from "react";
 
-// ----------------- Types -----------------
 export type Language = "EN" | "FI";
 
 export type Role = "player" | "admin" | null;
@@ -19,11 +17,10 @@ export interface AppState {
     currentQuestion: number;
     setCurrentQuestion: (index: number) => void;
 
-    answers: Record<number, string>; // questionIndex -> "yes"/"no"
+    answers: Record<number, string>;
     setAnswer: (questionIndex: number, answer: string) => void;
 }
 
-// ----------------- Default State -----------------
 const defaultState: AppState = {
     language: "EN",
     setLanguage: () => { },
@@ -41,10 +38,8 @@ const defaultState: AppState = {
     setAnswer: () => { },
 };
 
-// ----------------- Context -----------------
 export const AppContext = createContext<AppState>(defaultState);
 
-// ----------------- Provider -----------------
 interface AppProviderProps {
     children: ReactNode;
 }
@@ -80,5 +75,4 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     );
 };
 
-// Add this empty export to satisfy TypeScript isolatedModules
-export { };
+export {};

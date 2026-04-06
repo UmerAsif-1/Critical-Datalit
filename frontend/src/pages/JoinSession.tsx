@@ -5,6 +5,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
+import JoinSessionCategoryIcons from "../components/JoinSessionCategoryIcons/JoinSessionCategoryIcons";
 
 export type JoinSessionLocationState = {
     sessionId: string;
@@ -14,7 +15,7 @@ export type JoinSessionLocationState = {
 
 const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
 
-/** Dev-only fallback when opening /join-session with no navigation state. */
+// Dev-only state when /join-session is opened with no router state.
 const DEV_JOIN_SESSION_PREVIEW: JoinSessionLocationState = {
     sessionId: PLACEHOLDER_SESSION_ID,
     joinCode: "000000",
@@ -114,14 +115,14 @@ const JoinSession: React.FC = () => {
                     alignItems: "center",
                     justifyContent: "center",
                     paddingTop: 80,
-                    paddingBottom: 120,
+                    paddingBottom: 48,
                     paddingLeft: 24,
                     paddingRight: 24,
                     width: "100%",
                     boxSizing: "border-box",
                 }}
             >
-                <Header title="Critical DataLit" />
+                <Header title="Daily data privileges" />
 
                 <div
                     style={{
@@ -151,12 +152,14 @@ const JoinSession: React.FC = () => {
                             fontSize: 18,
                             lineHeight: 1.5,
                             color: DARK_BLACK,
-                            fontWeight: 500,
+                            fontWeight: 700,
                         }}
                     >
-                        In this session you will answer questions about data privilege and how it might show up in
-                        your life. Please select the most appropriate answer from the options provided for you.
+                        In this session you will answer questions about data privilege and how it might affect you in
+                        different categories of life:
                     </p>
+
+                    <JoinSessionCategoryIcons />
 
                     <div style={{ textAlign: "center" }}>
                         <button
@@ -175,46 +178,10 @@ const JoinSession: React.FC = () => {
                                 fontFamily: "inherit",
                             }}
                         >
-                            Start the quiz
+                            Start
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 200,
-                    overflow: "hidden",
-                    pointerEvents: "none",
-                }}
-            >
-                <svg
-                    width="100%"
-                    height="100%"
-                    viewBox="0 0 1200 200"
-                    preserveAspectRatio="none"
-                    style={{ display: "block" }}
-                >
-                    <path
-                        d="M0,200 L0,50 C200,200 1000,200 1200,50 L1200,200 Z"
-                        fill="#E6C84A"
-                        opacity={0.5}
-                    />
-                    <path
-                        d="M0,200 L0,50 Q420,60 840,200 L0,200 Z"
-                        fill="#28C900"
-                        opacity={0.36}
-                    />
-                    <path
-                        d="M1200,200 L1200,50 Q840,60 360,200 L1200,200 Z"
-                        fill="#6500AD"
-                        opacity={0.36}
-                    />
-                </svg>
             </div>
         </div>
     );

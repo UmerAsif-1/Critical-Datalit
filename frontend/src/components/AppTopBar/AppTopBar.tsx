@@ -9,9 +9,6 @@ export interface AppTopBarProps {
     onLanguageChange: (lang: Language) => void;
 }
 
-/**
- * Purple top bar with accessibility, info, and language controls (shared across main flows).
- */
 const AppTopBar: React.FC<AppTopBarProps> = ({ language, onLanguageChange }) => {
     return (
         <div

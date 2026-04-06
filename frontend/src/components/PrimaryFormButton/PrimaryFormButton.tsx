@@ -4,7 +4,6 @@ import {
     SESSION_CARD_INNER_WIDTH_PX,
 } from "../../theme/sessionLayout";
 
-/** Matches MainView `buttonStyle(ORANGE_BUTTON)` for Create Session */
 const ORANGE_BUTTON = "#FF9400";
 
 export interface PrimaryFormButtonProps {
@@ -14,9 +13,6 @@ export interface PrimaryFormButtonProps {
     disabled?: boolean;
 }
 
-/**
- * Large orange primary action (Create Session, etc.).
- */
 const PrimaryFormButton: React.FC<PrimaryFormButtonProps> = ({
     children,
     onClick,

@@ -1,19 +1,25 @@
-import React, { useState } from "react";
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
+import QuestionCategoryBadge from "../components/QuestionCategoryBadge/QuestionCategoryBadge";
+import { scoresFromSubmittedAnswers } from "../services/answerScoring";
+import {
+    PLACEHOLDER_SESSION_QUESTIONS,
+    USE_REMOTE_SESSION_QUESTIONS,
+    fetchSessionQuestions,
+} from "../services/sessionQuestions";
+import type { SessionQuestion } from "../types/sessionQuestion";
+import type { UserResultsLocationState } from "./UserResults";
 
 const HEADER_PURPLE = "#6500AD";
 const LIGHT_PURPLE_BG = "#FDF9FF";
-const TEAL_BUTTON = "#15B4A9";
+const TEAL_NAV = "#55ADA3";
 const DARK_BLACK = "#222222";
-const CARD_BORDER_BLUE = "#2563eb";
-
-const SAMPLE_QUESTION =
-    "My opinions online are rarely dismissed because of my gender.";
+const PROGRESS_YELLOW = "#E6C84A";
 
 const ANSWER_OPTIONS: { value: string; label: string }[] = [
     { value: "completely_agree", label: "Completely agree" },
@@ -29,10 +35,62 @@ export type QuestionsLocationState = {
 const Questions: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const location = useLocation();
+    const navigate = useNavigate();
     const state = location.state as QuestionsLocationState | undefined;
 
     const [language, setLanguage] = useState<Language>("EN");
-    const [selected, setSelected] = useState<string | null>(null);
+    const [questions, setQuestions] = useState<SessionQuestion[]>(() =>
+        USE_REMOTE_SESSION_QUESTIONS ? [] : PLACEHOLDER_SESSION_QUESTIONS,
+    );
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(USE_REMOTE_SESSION_QUESTIONS);
+
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [answers, setAnswers] = useState<Record<number, string>>({});
+    const [completedQuestionIndices, setCompletedQuestionIndices] = useState<Set<number>>(
+        () => new Set(),
+    );
+
+    useEffect(() => {
+        if (!sessionId) {
+            return;
+        }
+        setCurrentQuestionIndex(0);
+        setAnswers({});
+        setCompletedQuestionIndices(new Set());
+        setLoadError(null);
+
+        if (!USE_REMOTE_SESSION_QUESTIONS) {
+            setQuestions(PLACEHOLDER_SESSION_QUESTIONS);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        setQuestions([]);
+
+        fetchSessionQuestions(sessionId)
+            .then((list) => {
+                setQuestions(list);
+                setIsLoading(false);
+            })
+            .catch((err) => {
+                setLoadError(err instanceof Error ? err.message : "Failed to load questions");
+                setIsLoading(false);
+            });
+    }, [sessionId]);
+
+    const totalQuestions = questions.length;
+    const selected = answers[currentQuestionIndex] ?? null;
+    const current = questions[currentQuestionIndex];
+
+    const progressPercent = useMemo(
+        () =>
+            totalQuestions === 0
+                ? 0
+                : Math.round((completedQuestionIndices.size / totalQuestions) * 100),
+        [completedQuestionIndices, totalQuestions],
+    );
 
     if (!sessionId) {
         return <Navigate to="/MainView" replace />;
@@ -40,11 +98,59 @@ const Questions: React.FC = () => {
 
     const joinCode = state?.joinCode ?? "—";
 
-    const saveAnswer = () => {
-        if (!selected) return;
-        // TODO: POST /api/game/submit-answer when backend is ready
-        console.log("Save answer", { sessionId, selected });
+    const setSelected = (value: string) => {
+        setAnswers((prev) => ({ ...prev, [currentQuestionIndex]: value }));
     };
+
+    const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1;
+
+    const goNextOrSubmit = () => {
+        if (!selected || !current) return;
+        console.log("Save answer", {
+            sessionId,
+            questionId: current.id,
+            category: current.category,
+            selected,
+        });
+
+        setCompletedQuestionIndices((prev) => new Set(prev).add(currentQuestionIndex));
+
+        if (!isLastQuestion) {
+            setCurrentQuestionIndex((i) => i + 1);
+            return;
+        }
+
+        const finalAnswers = { ...answers, [currentQuestionIndex]: selected };
+        const scoresByCategory = scoresFromSubmittedAnswers(questions, finalAnswers);
+        const resultsState: UserResultsLocationState = {
+            joinCode: state?.joinCode,
+            scoresByCategory,
+        };
+        navigate(`/session/${sessionId}/results`, { state: resultsState });
+    };
+
+    const goPrevious = () => {
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex((i) => i - 1);
+        } else {
+            navigate(-1);
+        }
+    };
+
+    const navButtonStyle = (enabled: boolean): React.CSSProperties => ({
+        flex: 1,
+        padding: "14px 20px",
+        borderRadius: 12,
+        border: "none",
+        color: "#000000",
+        fontWeight: 700,
+        fontSize: 18,
+        cursor: enabled ? "pointer" : "not-allowed",
+        background: TEAL_NAV,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        fontFamily: "inherit",
+        opacity: enabled ? 1 : 0.55,
+    });
 
     return (
         <div
@@ -102,14 +208,14 @@ const Questions: React.FC = () => {
                     flexDirection: "column",
                     alignItems: "center",
                     paddingTop: 80,
-                    paddingBottom: 120,
+                    paddingBottom: 48,
                     paddingLeft: 24,
                     paddingRight: 24,
                     width: "100%",
                     boxSizing: "border-box",
                 }}
             >
-                <Header title="Critical DataLit" />
+                <Header title="Daily data privileges" />
 
                 <div
                     style={{
@@ -135,113 +241,150 @@ const Questions: React.FC = () => {
                     style={{
                         width: "min(520px, 94vw)",
                         padding: 28,
-                        borderRadius: 12,
+                        borderRadius: 16,
                         background: "#fff",
-                        border: `2px solid ${CARD_BORDER_BLUE}`,
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
                         boxSizing: "border-box",
                     }}
                 >
-                    <p
-                        style={{
-                            margin: "0 0 24px 0",
-                            fontSize: 18,
-                            lineHeight: 1.5,
-                            color: DARK_BLACK,
-                            fontWeight: 600,
-                        }}
-                    >
-                        {SAMPLE_QUESTION}
-                    </p>
+                    {isLoading && (
+                        <p style={{ margin: 0, textAlign: "center", color: DARK_BLACK }}>Loading…</p>
+                    )}
 
-                    <div
-                        role="radiogroup"
-                        aria-label="Answer"
-                        style={{ display: "flex", flexDirection: "column", gap: 14 }}
-                    >
-                        {ANSWER_OPTIONS.map((opt) => (
-                            <label
-                                key={opt.value}
+                    {!isLoading && loadError && (
+                        <p style={{ margin: 0, textAlign: "center", color: "#b00020" }}>{loadError}</p>
+                    )}
+
+                    {!isLoading && !loadError && totalQuestions === 0 && (
+                        <p style={{ margin: 0, textAlign: "center", color: DARK_BLACK }}>
+                            No questions for this session.
+                        </p>
+                    )}
+
+                    {!isLoading && !loadError && current && (
+                        <>
+                            <div style={{ marginBottom: 24 }}>
+                                <div
+                                    style={{
+                                        height: 8,
+                                        background: "#E8E8E8",
+                                        borderRadius: 4,
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            width: `${progressPercent}%`,
+                                            height: "100%",
+                                            background: PROGRESS_YELLOW,
+                                            borderRadius: 4,
+                                            transition: "width 0.2s ease",
+                                        }}
+                                    />
+                                </div>
+                                <p
+                                    style={{
+                                        margin: "10px 0 0",
+                                        textAlign: "center",
+                                        fontSize: 15,
+                                        fontWeight: 700,
+                                        color: DARK_BLACK,
+                                    }}
+                                >
+                                    {progressPercent}%
+                                </p>
+                            </div>
+
+                            <div
                                 style={{
                                     display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    cursor: "pointer",
-                                    fontSize: 16,
-                                    color: DARK_BLACK,
+                                    gap: 20,
+                                    marginBottom: 24,
+                                    alignItems: "flex-start",
                                 }}
                             >
-                                <input
-                                    type="radio"
-                                    name="answer"
-                                    value={opt.value}
-                                    checked={selected === opt.value}
-                                    onChange={() => setSelected(opt.value)}
-                                    style={{ width: 18, height: 18, cursor: "pointer" }}
-                                />
-                                <span>{opt.label}</span>
-                            </label>
-                        ))}
-                    </div>
+                                <QuestionCategoryBadge category={current.category} />
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: 18,
+                                        lineHeight: 1.5,
+                                        color: DARK_BLACK,
+                                        fontWeight: 600,
+                                        flex: 1,
+                                        minWidth: 0,
+                                    }}
+                                >
+                                    {current.prompt}
+                                </p>
+                            </div>
 
-                    <div style={{ textAlign: "center", marginTop: 28 }}>
-                        <button
-                            type="button"
-                            onClick={saveAnswer}
-                            disabled={!selected}
-                            style={{
-                                padding: "14px 40px",
-                                borderRadius: 999,
-                                border: "none",
-                                color: "#000000",
-                                fontWeight: 700,
-                                fontSize: 20,
-                                cursor: selected ? "pointer" : "not-allowed",
-                                background: TEAL_BUTTON,
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                                fontFamily: "inherit",
-                                opacity: selected ? 1 : 0.6,
-                            }}
-                        >
-                            Save answer
-                        </button>
-                    </div>
+                            <div
+                                role="radiogroup"
+                                aria-label="Answer"
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 12,
+                                    alignItems: "center",
+                                    width: "100%",
+                                }}
+                            >
+                                {ANSWER_OPTIONS.map((opt) => {
+                                    const isSelected = selected === opt.value;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={isSelected}
+                                            onClick={() => setSelected(opt.value)}
+                                            style={{
+                                                width: "min(100%, 360px)",
+                                                padding: "14px 18px",
+                                                borderRadius: 12,
+                                                border: isSelected
+                                                    ? `2px solid ${PROGRESS_YELLOW}`
+                                                    : "1px solid #CFCFCF",
+                                                background: "#fff",
+                                                color: DARK_BLACK,
+                                                fontSize: 16,
+                                                fontWeight: 700,
+                                                textAlign: "center",
+                                                cursor: "pointer",
+                                                fontFamily: "inherit",
+                                                boxSizing: "border-box",
+                                                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                                            }}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 16,
+                                    marginTop: 28,
+                                }}
+                            >
+                                <button type="button" onClick={goPrevious} style={navButtonStyle(true)}>
+                                    Previous
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={goNextOrSubmit}
+                                    disabled={!selected}
+                                    style={navButtonStyle(Boolean(selected))}
+                                >
+                                    {isLastQuestion ? "Submit" : "Next"}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
-            </div>
-
-            <div
-                style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 200,
-                    overflow: "hidden",
-                    pointerEvents: "none",
-                }}
-            >
-                <svg
-                    width="100%"
-                    height="100%"
-                    viewBox="0 0 1200 200"
-                    preserveAspectRatio="none"
-                    style={{ display: "block" }}
-                >
-                    <path
-                        d="M0,200 L0,50 C200,200 1000,200 1200,50 L1200,200 Z"
-                        fill="#E6C84A"
-                        opacity={0.5}
-                    />
-                    <path
-                        d="M0,200 L0,50 Q420,60 840,200 L0,200 Z"
-                        fill="#28C900"
-                        opacity={0.36}
-                    />
-                    <path
-                        d="M1200,200 L1200,50 Q840,60 360,200 L1200,200 Z"
-                        fill="#6500AD"
-                        opacity={0.36}
-                    />
-                </svg>
             </div>
         </div>
     );

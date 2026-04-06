@@ -1,4 +1,4 @@
-/** Shared palette for Critical DataLit screens */
+// Shared screen palette.
 export const colors = {
     headerPurple: "#6500AD",
     pageBackground: "#F9F5FF",

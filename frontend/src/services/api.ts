@@ -5,7 +5,7 @@ export interface JoinSessionResponse {
     playUrl: string;
 }
 
-/** POST /api/sessions/join — sets user cookie; use CRA proxy or REACT_APP_API_URL. */
+// POST /api/sessions/join (cookie session).
 export async function joinSessionRequest(code: string): Promise<JoinSessionResponse> {
     const res = await fetch(`${API_BASE}/api/sessions/join`, {
         method: "POST",

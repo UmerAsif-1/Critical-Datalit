@@ -20,9 +20,6 @@ export interface LabeledSelectProps {
     placeholderLabel?: string;
 }
 
-/**
- * Select with left chevron and centered text to match Critical DataLit mockups.
- */
 const LabeledSelect: React.FC<LabeledSelectProps> = ({
     id,
     label,

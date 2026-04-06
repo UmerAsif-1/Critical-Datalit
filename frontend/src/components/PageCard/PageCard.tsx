@@ -7,9 +7,6 @@ export interface PageCardProps {
     maxWidth?: number;
 }
 
-/**
- * Centered white card with heading (Create New Session form).
- */
 const PageCard: React.FC<PageCardProps> = ({ title, children, maxWidth = 600 }) => {
     return (
         <div

@@ -17,7 +17,7 @@ const SessionInput: React.FC<SessionInputProps> = ({ value, onChange, placeholde
                 padding: "10px",
                 fontSize: "18px",
                 borderRadius: "8px",
-                border: "1px solid #9CA3AF", // gray border
+                border: "1px solid #9CA3AF",
                 width: "250px",
                 textAlign: "center",
             }}

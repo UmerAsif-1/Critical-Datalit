@@ -12,7 +12,6 @@ const TEAL_BUTTON = "#15B4A9";
 const ORANGE_BUTTON = "#FF9400";
 const DARK_BLACK = "#222222";
 
-/** Until join API is wired, use a placeholder session id for navigation state. */
 const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
 
 const cardStyle: React.CSSProperties = {
@@ -86,7 +85,6 @@ const MainView: React.FC = () => {
                 background: LIGHT_PURPLE_BG,
             }}
         >
-            {/* Breadcrumb */}
             <div
                 style={{
                     position: "absolute",
@@ -99,7 +97,6 @@ const MainView: React.FC = () => {
                 /Main Primary
             </div>
 
-            {/* Purple header bar */}
             <div
                 style={{
                     position: "absolute",
@@ -125,7 +122,6 @@ const MainView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main content: title + card, centered with top padding for header */}
             <div
                 style={{
                     flex: 1,
@@ -139,7 +135,7 @@ const MainView: React.FC = () => {
                     paddingRight: 24,
                 }}
             >
-                <Header title="Critical DataLit" />
+                <Header title="Daily data privileges" />
                 <div style={cardStyle}>
                     <p
                         style={{
@@ -207,7 +203,6 @@ const MainView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Bottom decorative wavy*/}
             <div
                 style={{
                     position: "absolute",
@@ -226,19 +221,16 @@ const MainView: React.FC = () => {
                     preserveAspectRatio="none"
                     style={{ display: "block" }}
                 >
-                    {/* Yellowish back shape*/}
                     <path
                         d="M0,200 L0,50 C200,200 1000,200 1200,50 L1200,200 Z"
                         fill="#E6C84A"
                         opacity={0.5}
                     />
-                    {/* Green */}
                     <path
                         d="M0,200 L0,50 Q420,60 840,200 L0,200 Z"
                         fill="#28C900"
                         opacity={0.36}
                     />
-                    {/* Purple*/}
                     <path
                         d="M1200,200 L1200,50 Q840,60 360,200 L1200,200 Z"
                         fill="#6500AD"
