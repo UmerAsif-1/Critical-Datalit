@@ -1,0 +1,11 @@
+services:
+  backend:
+    environment:
+      COOKIE_SECURE: "false"
+      COOKIE_USE_HOST_PREFIX: "false"
+      CORS_ORIGIN: ""
+  caddy:
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile

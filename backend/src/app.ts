@@ -9,13 +9,12 @@ import adminRoutes from "./routes/admin.routes";
 
 const app = express();
 
-app.use(
-    cors({
-        origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
-        credentials: true,
-    }),
-);
-app.use(express.json());
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",")
+    : ["http://localhost:3000"];
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 
 

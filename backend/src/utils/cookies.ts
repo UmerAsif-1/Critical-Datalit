@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { SESSION_TTL_HOURS } from "../config/session";
 
 const COOKIE_ADMIN = "__Host-admin_token" as const;
 const COOKIE_USER  = "__Host-user_token"  as const;
@@ -29,7 +30,7 @@ export function cookieWriteOptions() {
         secure: effectiveSecure,
         sameSite,
         path: "/" as const,
-
+        maxAge: SESSION_TTL_HOURS * 3600,
     };
 }
 

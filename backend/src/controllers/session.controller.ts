@@ -2,7 +2,7 @@ import {Request,Response}  from "express";
 import {db} from '../db';
 import {getQuizById, quizzes} from "../quizzes";
 import {generateSessionId, generateJoinCode, isValidJoinCode} from "../utils/generateSessionCodes";
-import {setAdminCookie, setUserCookie} from "../utils/cookies";
+import {getUserUuid, setAdminCookie, setUserCookie} from "../utils/cookies";
 
 interface SessionRow{
     id:string,
@@ -25,16 +25,12 @@ export function createSession(req: Request,res: Response) {
     if (!quiz ) {
         return res.status(400).json({message: "Invalid quiz id"});
     }
-    const questionCount = quiz.questions.length;
-    let adminCookie = generateSessionId();
-
+    let adminCookie = "";
     const sessionId = generateSessionId();
-    const questionCols: string[] = [];
-    for (let i = 0, len = questionCount; i < len; i++) {
-        questionCols.push(`question_${i + 1}`);
-    }
     let joinCode: string | null = null;
-    while (true) {
+    let attempts = 0;
+    while (attempts < 10) {
+        attempts++;
         const code = generateJoinCode();
         adminCookie = generateSessionId();
         try {
@@ -70,6 +66,9 @@ export function createSession(req: Request,res: Response) {
         }
 
     }
+    if (!joinCode) {
+        return res.status(503).json({ error: "Could not generate a unique join code. Try again." });
+    }
     setAdminCookie(res, adminCookie);
     return res.status(200).json({
         sessionId,
@@ -95,6 +94,20 @@ export function joinSession(req: Request, res: Response) {
     if (!session) {
         return res.status(404).json({error: "No session found"});
     }
+    const existingCookie = getUserUuid(req);
+    if (existingCookie) {
+        const existing = db.prepare(
+            `SELECT 1 FROM game WHERE user_cookie = ? AND session_id = ?`
+        ).get(existingCookie, session.id);
+        if (existing) {
+            return res.status(200).json({
+                sessionId: session.id,
+                quizId: session.quiz_id,
+                playUrl: `/session/${session.id}/play`,
+            });
+        }
+    }
+
 
     const quiz = getQuizById(session.quiz_id);
     if (!quiz) {

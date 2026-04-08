@@ -1,0 +1,15 @@
+{$DOMAIN} {
+    basicauth * {
+        {$AUTH_USER} {$AUTH_HASH}
+    }
+
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    handle {
+        root * /var/www/html
+        try_files {path} /index.html
+        file_server
+    }
+}

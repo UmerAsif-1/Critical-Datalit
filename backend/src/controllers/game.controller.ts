@@ -25,7 +25,7 @@ export function submitAnswer(req: Request, res: Response) {
         answer: number;
     };
 
-    if (!Number.isInteger(questionIndex) || !Number.isInteger(answer)) {
+    if (!Number.isInteger(questionIndex) || !Number.isInteger(answer) || answer < 0) {
         return res.status(400).json({ error: "Invalid format!" });
     }
 

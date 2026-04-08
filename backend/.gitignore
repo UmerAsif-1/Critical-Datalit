@@ -9,6 +9,8 @@ dist/
 
 #db
 *.db
+*.db-shm
+*.db-wal
 
 # envs
 .env
