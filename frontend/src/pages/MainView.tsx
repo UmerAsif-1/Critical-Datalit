@@ -68,6 +68,7 @@ const MainView: React.FC = () => {
                         joinCode: code,
                         playUrl: data.playUrl,
                         quizId: data.quizId,
+                        resumeFromQuestion: data.resumeFromQuestion,
                     },
                 });
             } catch (e) {

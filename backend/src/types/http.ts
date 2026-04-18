@@ -4,6 +4,7 @@ export interface SessionRow {
     admin_cookie: string;
     quiz_id: string;
     created_at: string;
+    ended_at: string | null;
     [key: `question_${number}`]: number | null | undefined;
 }
 

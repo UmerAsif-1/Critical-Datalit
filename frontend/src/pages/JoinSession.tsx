@@ -13,6 +13,7 @@ export type JoinSessionLocationState = {
     joinCode: string;
     playUrl: string;
     quizId: string;
+    resumeFromQuestion: number;
 };
 
 const PLACEHOLDER_SESSION_ID = "00000000-0000-0000-0000-000000000001";
@@ -22,6 +23,7 @@ const DEV_JOIN_SESSION_PREVIEW: JoinSessionLocationState = {
     joinCode: "000000",
     playUrl: `/session/${PLACEHOLDER_SESSION_ID}/questions`,
     quizId: DEFAULT_QUIZ_ID,
+    resumeFromQuestion: 0,
 };
 
 const HEADER_PURPLE = "#6500AD";
@@ -57,7 +59,7 @@ const JoinSession: React.FC = () => {
 
     const startQuiz = () => {
         navigate(`/session/${effective.sessionId}/questions`, {
-            state: { joinCode, quizId: effective.quizId },
+            state: { joinCode, quizId: effective.quizId, resumeFromQuestion: effective.resumeFromQuestion },
         });
     };
 

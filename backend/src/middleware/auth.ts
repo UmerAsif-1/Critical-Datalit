@@ -74,6 +74,9 @@ export function requireUserBySessionIdFromBody(req: Request, res: Response, next
     if (!session){
         return res.status(404).json({ error: "Session not found" });
     }
+    if (session.ended_at) {
+        return res.status(410).json({ error: "Session has ended" });
+    }
 
     const game = db
         .prepare(`SELECT * FROM game WHERE session_id = ? AND user_cookie = ?`)

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import React, { useContext, useMemo, useRef, useState, type ComponentType } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     Legend,
@@ -16,6 +16,8 @@ import { PRIVILEGE_CATEGORIES } from "../constants/privilegeCategories";
 import { colors } from "../theme/colors";
 import type { QuestionCategory } from "../types/sessionQuestion";
 import { downloadElementAsPng } from "../utils/exportDomAsPng";
+import { downloadAdminSessionCsv } from "../services/api";
+import type { EndSessionResults } from "../services/api";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const asChart = (C: unknown) => C as ComponentType<any>;
@@ -38,29 +40,11 @@ const RADAR_AXIS_ORDER: QuestionCategory[] = [
     "race_ethnicity",
 ];
 
-const RADAR_SCORES_BY_CATEGORY: Record<QuestionCategory, number> = {
-    ability: 5.2,
-    age: 6.1,
-    class: 4.4,
-    language: 5.0,
-    gender: 3.8,
-    race_ethnicity: 5.6,
-};
-
 export type AdminSessionEndedLocationState = {
     sessionName: string;
+    endSessionResults: EndSessionResults | null;
 };
 
-function formatDeleteCountdown(ms: number): string {
-    if (ms <= 0) {
-        return "0 h 0 min 0 s";
-    }
-    const totalSec = Math.floor(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    return `${h} h ${m} min ${s} s`;
-}
 
 const actionButtonStyle: React.CSSProperties = {
     padding: "14px 28px",
@@ -84,44 +68,62 @@ const AdminSessionEnded: React.FC = () => {
 
     const state = location.state as AdminSessionEndedLocationState | undefined;
     const sessionName = state?.sessionName?.trim() || "New session";
+    const endResults = state?.endSessionResults ?? null;
+    const [csvBusy, setCsvBusy] = useState(false);
+    const [csvError, setCsvError] = useState<string | null>(null);
 
-    const [deleteDeadline] = useState(() => Date.now() + (26 * 3600 + 23 * 60 + 29) * 1000);
-    const [remainingMs, setRemainingMs] = useState(() => deleteDeadline - Date.now());
+    const expiresAtDisplay = useMemo(() => {
+        const s = endResults?.session;
+        if (!s?.createdAt || !s?.ttlHours) return null;
+        const normalized = s.createdAt.includes("T") ? s.createdAt : s.createdAt.replace(" ", "T");
+        const ms = Date.parse(normalized);
+        if (isNaN(ms)) return null;
+        return new Date(ms + s.ttlHours * 3600 * 1000).toLocaleString();
+    }, [endResults]);
 
-    useEffect(() => {
-        const id = window.setInterval(() => {
-            setRemainingMs(Math.max(0, deleteDeadline - Date.now()));
-        }, 1000);
-        return () => window.clearInterval(id);
-    }, [deleteDeadline]);
+    const radarData = useMemo(() => {
+        return RADAR_AXIS_ORDER.map((id) => {
+            const meta = PRIVILEGE_CATEGORIES.find((c) => c.id === id)!;
+            const score = endResults?.aggregate.averages[id] ?? 0;
+            return { subject: meta.label, score };
+        });
+    }, [endResults]);
 
-    const radarData = useMemo(
-        () =>
-            RADAR_AXIS_ORDER.map((id) => {
-                const meta = PRIVILEGE_CATEGORIES.find((c) => c.id === id)!;
-                return {
-                    subject: meta.label,
-                    score: RADAR_SCORES_BY_CATEGORY[id],
-                };
-            }),
-        [],
-    );
-
-    const handleDownloadCsv = (): void => {
+    const handleDownloadSummaryCsv = (): void => {
         const rows = [
             ["Session ID", sessionId ?? ""],
             ["Session name", sessionName],
+            ["Participants", String(endResults?.participantCount ?? 0)],
+            ["Completed", String(endResults?.completedCount ?? 0)],
+            ["Incomplete", String(endResults?.incompleteCount ?? 0)],
             ["Status", "ended"],
-            ...radarData.map((r) => [`Privilege — ${r.subject}`, String(r.score)]),
+            [],
+            ["Category", "Average score (0–9)"],
+            ...radarData.map((r) => [r.subject, String(r.score)]),
         ];
         const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `session-${sessionId ?? "export"}-ended.csv`;
+        a.download = `session-${sessionId ?? "export"}-summary.csv`;
         a.click();
         URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadFullCsv = (): void => {
+        if (!sessionId) return;
+        setCsvBusy(true);
+        setCsvError(null);
+        void (async () => {
+            try {
+                await downloadAdminSessionCsv(sessionId, `session-${sessionId}-full`);
+            } catch (e) {
+                setCsvError(e instanceof Error ? e.message : "CSV download failed");
+            } finally {
+                setCsvBusy(false);
+            }
+        })();
     };
 
     const handleDownloadImage = (): void => {
@@ -233,8 +235,8 @@ const AdminSessionEnded: React.FC = () => {
                                 />
                                 <PolarRadiusAxisC
                                     angle={90}
-                                    domain={[0, 8]}
-                                    tickCount={5}
+                                    domain={[0, 9]}
+                                    tickCount={4}
                                     tick={{ fill: "#666", fontSize: 11 }}
                                 />
                                 <RadarC
@@ -268,27 +270,43 @@ const AdminSessionEnded: React.FC = () => {
                         flexWrap: "wrap",
                         gap: 12,
                         justifyContent: "center",
-                        marginBottom: 28,
+                        marginBottom: 12,
                     }}
                 >
-                    <button type="button" style={actionButtonStyle} onClick={handleDownloadCsv}>
-                        Download CSV
+                    <button type="button" style={actionButtonStyle} onClick={handleDownloadSummaryCsv}>
+                        Summary CSV
+                    </button>
+                    <button
+                        type="button"
+                        style={{ ...actionButtonStyle, opacity: csvBusy ? 0.6 : 1 }}
+                        onClick={handleDownloadFullCsv}
+                        disabled={csvBusy}
+                    >
+                        {csvBusy ? "…" : "Full CSV"}
                     </button>
                     <button type="button" style={actionButtonStyle} onClick={handleDownloadImage}>
                         Download image
                     </button>
                 </div>
 
+                {csvError && (
+                    <p style={{ color: "#b00020", fontSize: 14, marginBottom: 12, textAlign: "center" }}>
+                        {csvError}
+                    </p>
+                )}
+
                 <p
                     style={{
                         margin: 0,
                         fontWeight: 700,
-                        fontSize: 18,
+                        fontSize: 15,
                         color: colors.darkText,
                         textAlign: "center",
                     }}
                 >
-                    Results will be deleted in: {formatDeleteCountdown(remainingMs)}
+                    {expiresAtDisplay
+                        ? `Full data available for download until ${expiresAtDisplay}.`
+                        : "Session has ended."}
                 </p>
             </main>
         </div>

@@ -32,6 +32,7 @@ const ANSWER_OPTIONS: { value: string; label: string }[] = [
 export type QuestionsLocationState = {
     joinCode?: string;
     quizId?: string;
+    resumeFromQuestion?: number;
 };
 
 const Questions: React.FC = () => {
@@ -68,8 +69,32 @@ const Questions: React.FC = () => {
             try {
                 const quizId = state?.quizId ?? (await fetchFirstQuizId());
                 const list = await fetchQuizQuestions(quizId);
+                if (cancelled) return;
+                setQuestions(list);
+
+                let startIdx = 0;
+                try {
+                    const result = await getGameResult(sessionId);
+                    if (!result.pending && result.traits?.length) {
+                        const scoresByCategory = traitsToScoresByCategory(result.traits);
+                        const resultsState: UserResultsLocationState = {
+                            joinCode: state?.joinCode,
+                            scoresByCategory,
+                        };
+                        navigate(`/session/${sessionId}/results`, { state: resultsState, replace: true });
+                        return;
+                    }
+                    startIdx = Math.min(result.answered ?? 0, list.length - 1);
+                    startIdx = Math.max(startIdx, 0);
+                } catch {
+                    startIdx = 0;
+                }
+
                 if (!cancelled) {
-                    setQuestions(list);
+                    setCurrentQuestionIndex(startIdx);
+                    const completed = new Set<number>();
+                    for (let i = 0; i < startIdx; i++) completed.add(i);
+                    setCompletedQuestionIndices(completed);
                 }
             } catch (e) {
                 if (!cancelled) {
@@ -395,7 +420,7 @@ const Questions: React.FC = () => {
                                     marginTop: 28,
                                 }}
                             >
-                                <button type="button" onClick={goPrevious} style={navButtonStyle(true)}>
+                                <button type="button" onClick={goPrevious} disabled={currentQuestionIndex === 0} style={navButtonStyle(currentQuestionIndex > 0)}>
                                     Previous
                                 </button>
                                 <button

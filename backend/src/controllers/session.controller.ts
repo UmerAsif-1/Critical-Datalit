@@ -6,7 +6,8 @@ import {getUserUuid, setAdminCookie, setUserCookie} from "../utils/cookies";
 
 interface SessionRow{
     id:string,
-    quiz_id: string
+    quiz_id: string,
+    ended_at: string | null
 }
 interface SessionInsertRow{
     id : string,
@@ -86,7 +87,7 @@ export function joinSession(req: Request, res: Response) {
     }
 
     const session = db.prepare(`
-        SELECT id, quiz_id
+        SELECT id, quiz_id, ended_at
         FROM sessions
         WHERE join_code = ?
     `).get(code) as SessionRow | undefined;
@@ -94,16 +95,30 @@ export function joinSession(req: Request, res: Response) {
     if (!session) {
         return res.status(404).json({error: "No session found"});
     }
+    if (session.ended_at) {
+        return res.status(410).json({error: "Session has ended"});
+    }
     const existingCookie = getUserUuid(req);
     if (existingCookie) {
-        const existing = db.prepare(
-            `SELECT 1 FROM game WHERE user_cookie = ? AND session_id = ?`
-        ).get(existingCookie, session.id);
-        if (existing) {
+        const gameRow = db.prepare(
+            `SELECT * FROM game WHERE user_cookie = ? AND session_id = ?`
+        ).get(existingCookie, session.id) as Record<string, unknown> | undefined;
+        if (gameRow) {
+            const quiz = getQuizById(session.quiz_id);
+            const questionCount = quiz ? quiz.questions.length : 0;
+            let resumeFromQuestion = 0;
+            for (let i = 1; i <= questionCount; i++) {
+                if (gameRow[`answer_${i}`] != null) {
+                    resumeFromQuestion = i; // 0-based index of next unanswered question
+                } else {
+                    break;
+                }
+            }
             return res.status(200).json({
                 sessionId: session.id,
                 quizId: session.quiz_id,
                 playUrl: `/session/${session.id}/play`,
+                resumeFromQuestion,
             });
         }
     }
@@ -136,5 +151,6 @@ export function joinSession(req: Request, res: Response) {
         sessionId: session.id,
         quizId: session.quiz_id,
         playUrl: `/session/${session.id}/play`,
+        resumeFromQuestion: 0,
     });
 }

@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+import path from "path";
+dotenv.config({ path: path.join(__dirname, "config/.env") });
+
 import app from "./app";
 import { startJanitor } from "./janitor";
 

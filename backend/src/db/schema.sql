@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     admin_cookie TEXT NOT NULL,
     quiz_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
+    ended_at TEXT DEFAULT NULL,
 
     question_1 INTEGER DEFAULT 0,
     question_2 INTEGER DEFAULT 0,

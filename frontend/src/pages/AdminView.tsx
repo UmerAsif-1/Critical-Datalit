@@ -22,6 +22,7 @@ import {
     postAdminEndSession,
     type AdminPlayerRow,
     type AdminSessionResultsResponse,
+    type EndSessionResults,
     type QuizDetailResponse,
 } from "../services/api";
 import { normalizeQuestionCategory } from "../services/sessionQuestions";
@@ -308,8 +309,12 @@ const AdminView: React.FC = () => {
         setEndBusy(true);
         void (async () => {
             try {
-                await postAdminEndSession(sessionId);
-                navigate(`/admin/${sessionId}/ended`, { state: { sessionName } });
+                const response = await postAdminEndSession(sessionId);
+                const endedState: { sessionName: string; endSessionResults: EndSessionResults | null } = {
+                    sessionName,
+                    endSessionResults: response.results ?? null,
+                };
+                navigate(`/admin/${sessionId}/ended`, { state: endedState });
             } catch (e) {
                 setLoadError(e instanceof Error ? e.message : "Could not end session");
             } finally {

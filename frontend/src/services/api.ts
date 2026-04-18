@@ -4,6 +4,7 @@ export interface JoinSessionResponse {
     sessionId: string;
     playUrl: string;
     quizId: string;
+    resumeFromQuestion: number;
 }
 
 export interface CreateSessionResponse {
@@ -41,6 +42,7 @@ export async function joinSessionRequest(code: string): Promise<JoinSessionRespo
         sessionId?: string;
         playUrl?: string;
         quizId?: string;
+        resumeFromQuestion?: number;
     };
 
     if (!res.ok) {
@@ -51,7 +53,12 @@ export async function joinSessionRequest(code: string): Promise<JoinSessionRespo
         throw new Error("Invalid response from server");
     }
 
-    return { sessionId: data.sessionId, playUrl: data.playUrl, quizId: data.quizId };
+    return {
+        sessionId: data.sessionId,
+        playUrl: data.playUrl,
+        quizId: data.quizId,
+        resumeFromQuestion: data.resumeFromQuestion ?? 0,
+    };
 }
 
 export async function createSessionRequest(quizId: string): Promise<CreateSessionResponse> {
@@ -165,15 +172,42 @@ export async function getQuizDetail(quizId: string): Promise<QuizDetailResponse>
     return data;
 }
 
-export async function postAdminEndSession(sessionId: string): Promise<void> {
+export interface EndSessionPlayerRow {
+    answerLabels: (string | null)[];
+    traits: Record<string, number>;
+    result: string;
+    completed: boolean;
+}
+
+export interface EndSessionResults {
+    session: { id: string; quizId: string; createdAt: string; ttlHours: number };
+    participantCount: number;
+    completedCount: number;
+    incompleteCount: number;
+    questionCounters: number[];
+    players: EndSessionPlayerRow[];
+    aggregate: {
+        scores: Record<string, number>;
+        averages: Record<string, number>;
+        result: string;
+    };
+}
+
+export interface EndSessionResponse {
+    success: boolean;
+    results: EndSessionResults | null;
+}
+
+export async function postAdminEndSession(sessionId: string): Promise<EndSessionResponse> {
     const res = await fetch(`${API_BASE}/api/admin/sessions/${encodeURIComponent(sessionId)}/end`, {
         method: "POST",
         credentials: "include",
     });
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const data = (await res.json().catch(() => ({}))) as EndSessionResponse & { error?: string };
     if (!res.ok) {
         throw new Error(data.error || `End session failed (${res.status})`);
     }
+    return data;
 }
 
 export async function downloadAdminSessionCsv(sessionId: string, filename: string): Promise<void> {

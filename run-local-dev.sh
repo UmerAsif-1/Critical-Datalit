@@ -13,7 +13,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-if [[ ! -d "$ROOT/backend/node_modules" ]]; then
+if [[ ! -d "$ROOT/backend/node_modules" ]] || [[ ! -d "$ROOT/backend/node_modules/dotenv" ]]; then
   echo "Installing backend dependencies…"
   (cd "$ROOT/backend" && npm install)
 fi
@@ -26,6 +26,6 @@ echo "Starting backend on http://localhost:3001"
 (cd "$ROOT/backend" && PORT=3001 npm run dev) &
 
 echo "Starting frontend on http://localhost:3000"
-(cd "$ROOT/frontend" && BROWSER=none PORT=3000 npm start) &
+(cd "$ROOT/frontend" && BROWSER=none PORT=3000 HOST=localhost npm start) &
 
 wait || true

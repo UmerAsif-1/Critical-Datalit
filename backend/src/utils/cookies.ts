@@ -30,7 +30,7 @@ export function cookieWriteOptions() {
         secure: effectiveSecure,
         sameSite,
         path: "/" as const,
-        maxAge: SESSION_TTL_HOURS * 3600,
+        maxAge: SESSION_TTL_HOURS * 3600 * 1000,
     };
 }
 
