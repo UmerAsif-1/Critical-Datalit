@@ -179,12 +179,13 @@ const Questions: React.FC = () => {
         setIsSubmitting(false);
     };
 
+    const canGoPrevious = currentQuestionIndex > 0;
+
     const goPrevious = () => {
-        if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex((i) => i - 1);
-        } else {
-            navigate(-1);
+        if (!canGoPrevious) {
+            return;
         }
+        setCurrentQuestionIndex((i) => i - 1);
     };
 
     const navButtonStyle = (enabled: boolean): React.CSSProperties => ({
@@ -420,7 +421,12 @@ const Questions: React.FC = () => {
                                     marginTop: 28,
                                 }}
                             >
-                                <button type="button" onClick={goPrevious} disabled={currentQuestionIndex === 0} style={navButtonStyle(currentQuestionIndex > 0)}>
+                                <button
+                                    type="button"
+                                    onClick={goPrevious}
+                                    disabled={!canGoPrevious}
+                                    style={navButtonStyle(canGoPrevious)}
+                                >
                                     Previous
                                 </button>
                                 <button
