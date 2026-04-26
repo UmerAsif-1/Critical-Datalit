@@ -11,7 +11,11 @@ const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(",")
-    : ["http://localhost:3000"];
+    : [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/ // Matches any 192.168.x.x IP
+    ];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: "10kb" }));

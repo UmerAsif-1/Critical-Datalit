@@ -45,5 +45,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:3001"
+  "scripts": {
+    "start": "HOST=0.0.0.0 PORT=3000 HTTPS=true react-scripts start"
+  }
 }
