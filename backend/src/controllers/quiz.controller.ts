@@ -12,11 +12,13 @@ interface PublicQuizSummary {
 interface PublicQuizAnswer {
     id: string;
     label: string;
+    labelFi?: string;
 }
 
 interface PublicQuizQuestion {
     id: string;
     prompt: string;
+    promptFi?: string;
     type: "single-choice";
     category?: string;
     answers: PublicQuizAnswer[];
@@ -25,6 +27,7 @@ interface PublicQuizQuestion {
 interface PublicQuizDetail {
     id: string;
     title: string;
+    titleFi?: string;
     questions: PublicQuizQuestion[];
 }
 
@@ -32,12 +35,18 @@ function toPublicDetail(q: Quiz): PublicQuizDetail {
     return {
         id: q.id,
         title: q.title,
+        ...(q.titleFi ? { titleFi: q.titleFi } : {}),
         questions: q.questions.map((qq) => ({
             id: qq.id,
             prompt: qq.prompt,
+            ...(qq.promptFi ? { promptFi: qq.promptFi } : {}),
             type: qq.type,
             ...(qq.category ? { category: qq.category } : {}),
-            answers: qq.answers.map((a) => ({ id: a.id, label: a.label })),
+            answers: qq.answers.map((a) => ({
+                id: a.id,
+                label: a.label,
+                ...(a.labelFi ? { labelFi: a.labelFi } : {}),
+            })),
         })),
     };
 }

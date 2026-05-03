@@ -13,6 +13,7 @@ import AdminSessionEnded from "./pages/AdminSessionEnded";
 import JoinSession from "./pages/JoinSession";
 import Questions from "./pages/Questions";
 import UserResults from "./pages/UserResults";
+import CookieBanner from "./components/CookieBanner/CookieBanner";
 
 const SessionPlayRedirect: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -35,6 +36,7 @@ const App: React.FC = () => {
         <Route path="/session/:sessionId/play" element={<SessionPlayRedirect />} />
         <Route path="*" element={<Navigate to="/MainView" replace />} />
       </Routes>
+      <CookieBanner />
     </Router>
   );
 };

@@ -197,8 +197,8 @@ const UserResults: React.FC = () => {
                             />
                             <PolarRadiusAxisC
                                 angle={90}
-                                domain={[0, 10]}
-                                tickCount={6}
+                                domain={[0, 9]}
+                                tickCount={4}
                                 tick={{ fill: "#666", fontSize: 11 }}
                             />
                             <RadarC

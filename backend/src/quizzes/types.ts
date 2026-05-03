@@ -1,6 +1,7 @@
 export interface Quiz {
     id: string;
     title: string;
+    titleFi?: string;
     questions: QuizQuestion[];
     resultLogic: PersonalityResultLogic;
 }
@@ -8,6 +9,7 @@ export interface Quiz {
 export interface QuizQuestion {
     id: string;
     prompt: string;
+    promptFi?: string;
     type: "single-choice";
     category?: string;
     answers: QuizAnswer[];
@@ -16,6 +18,7 @@ export interface QuizQuestion {
 export interface QuizAnswer {
     id: string;
     label: string;
+    labelFi?: string;
     traitEffects: TraitEffect[];
 }
 
