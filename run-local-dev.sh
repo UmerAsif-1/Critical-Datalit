@@ -26,6 +26,6 @@ echo "Starting backend on http://localhost:3001"
 (cd "$ROOT/backend" && PORT=3001 npm run dev) &
 
 echo "Starting frontend on http://localhost:3000"
-(cd "$ROOT/frontend" && BROWSER=none PORT=3000 HOST=localhost npm start) &
+(cd "$ROOT/frontend" && BROWSER=none PORT=3000 npm start) &
 
 wait || true
