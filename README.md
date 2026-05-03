@@ -58,6 +58,10 @@ BROWSER=none PORT=3000 npm start
 - **`frontend`**: `REACT_APP_API_URL` — only if you are not using the CRA proxy (defaults to same-origin `/api` → proxy target).
 - **`backend`**: `PORT` (default `3000`; use **3001** with this repo’s frontend proxy), `CORS_ORIGIN` (comma-separated origins if needed).
 
+### HTTPS for local dev (optional)
+
+Local dev runs over plain HTTP. If you need TLS locally (secure-context APIs, accessing the dev server from a phone, etc.) follow [docs/HTTPS_LOCAL_DEV.md](docs/HTTPS_LOCAL_DEV.md). Production TLS is handled by Caddy and unaffected.
+
 ## Backend tests
 
 ```bash

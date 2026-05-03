@@ -46,6 +46,6 @@
     ]
   },
   "scripts": {
-    "start": "HOST=0.0.0.0 PORT=3000 HTTPS=true react-scripts start"
+    "start": "HOST=0.0.0.0 PORT=3000 react-scripts start"
   }
 }
