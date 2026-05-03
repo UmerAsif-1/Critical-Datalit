@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
+import { getTranslation } from "../constants/translations";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
@@ -45,7 +47,8 @@ const JoinSession: React.FC = () => {
     const location = useLocation();
     const state = location.state as JoinSessionLocationState | undefined;
 
-    const [language, setLanguage] = useState<Language>("EN");
+    const { language, setLanguage } = useContext(AppContext);
+    const t = getTranslation(language);
 
     const isDev = process.env.NODE_ENV === "development";
     const hasRealState = Boolean(state?.sessionId && state?.joinCode && state?.quizId);
@@ -127,7 +130,7 @@ const JoinSession: React.FC = () => {
                     boxSizing: "border-box",
                 }}
             >
-                <Header title="Daily data privileges" />
+                <Header title={t.dailyDataPrivileges} />
 
                 <div
                     style={{
@@ -145,7 +148,7 @@ const JoinSession: React.FC = () => {
                             textAlign: "left",
                         }}
                     >
-                        Session {joinCode}
+                        {t.session} {joinCode}
                     </p>
                 </div>
 
@@ -160,8 +163,7 @@ const JoinSession: React.FC = () => {
                             fontWeight: 700,
                         }}
                     >
-                        In this session you will answer questions about data privilege and how it might affect you in
-                        different categories of life:
+                        {t.inThisSessionYouWill}
                     </p>
 
                     <JoinSessionCategoryIcons />
@@ -183,7 +185,7 @@ const JoinSession: React.FC = () => {
                                 fontFamily: "inherit",
                             }}
                         >
-                            Start
+                            {t.start}
                         </button>
                     </div>
                 </div>

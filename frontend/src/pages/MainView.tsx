@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
+import { getTranslation } from "../constants/translations";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
 import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
@@ -48,14 +50,15 @@ const buttonStyle = (bg: string): React.CSSProperties => ({
 
 const MainView: React.FC = () => {
     const navigate = useNavigate();
-    const [sessionCode, setSessionCode] = useState("");
-    const [language, setLanguage] = useState<Language>("EN");
-    const [joinError, setJoinError] = useState<string | null>(null);
+    const { language, setLanguage } = useContext(AppContext);
+    const t = getTranslation(language);
+    const [sessionCode, setSessionCode] = React.useState("");
+    const [joinError, setJoinError] = React.useState<string | null>(null);
 
     const joinSession = () => {
         const code = sessionCode.trim();
         if (!/^\d{6}$/.test(code)) {
-            setJoinError("Enter a valid 6-digit code.");
+            setJoinError(t.enterValidCode);
             return;
         }
         setJoinError(null);
@@ -72,7 +75,7 @@ const MainView: React.FC = () => {
                     },
                 });
             } catch (e) {
-                setJoinError(e instanceof Error ? e.message : "Could not join session");
+                setJoinError(e instanceof Error ? e.message : t.couldNotJoinSession);
             }
         })();
     };
@@ -142,7 +145,7 @@ const MainView: React.FC = () => {
                     paddingRight: 24,
                 }}
             >
-                <Header title="Daily data privileges" />
+                <Header title={t.dailyDataPrivileges} />
                 <div style={cardStyle}>
                     <p
                         style={{
@@ -153,13 +156,13 @@ const MainView: React.FC = () => {
                             color: DARK_BLACK,
                         }}
                     >
-                        Enter Session Code
+                        {t.enterSessionCode}
                     </p>
                     <input
                         value={sessionCode}
                         onChange={(e) => setSessionCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         style={inputStyle}
-                        placeholder="Enter 6-Digit Code"
+                        placeholder={t.enter6DigitCode}
                         maxLength={6}
                         inputMode="numeric"
                     />
@@ -167,7 +170,7 @@ const MainView: React.FC = () => {
                         <p style={{ color: "#c00", fontSize: 14, marginTop: 0, marginBottom: 12 }}>{joinError}</p>
                     )}
                     <button type="button" style={buttonStyle(colors.primaryButton)} onClick={joinSession}>
-                        Join Session
+                        {t.joinSession}
                     </button>
 
                     <div
@@ -193,7 +196,7 @@ const MainView: React.FC = () => {
                                 flexShrink: 0,
                             }}
                         >
-                            or
+                            {t.or}
                         </span>
                         <span
                             style={{
@@ -205,7 +208,7 @@ const MainView: React.FC = () => {
                     </div>
 
                     <button type="button" style={buttonStyle(colors.primaryButton)} onClick={createSession}>
-                        Create Session
+                        {t.createSession}
                     </button>
                 </div>
             </div>

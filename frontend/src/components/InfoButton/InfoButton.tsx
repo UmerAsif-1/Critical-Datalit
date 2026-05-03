@@ -1,15 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { AppContext } from "../../context/AppContext";
+import { getTranslation } from "../../constants/translations";
 
 export interface InfoButtonProps {
     variant?: "default" | "header";
 }
 
-const ABOUT_PANEL_TEXT = [
-    "This app was created to educate youth about data privilege and data justice. Join a session, answer questions and see how privilege affects you.",
-    "You can return back to the quiz if the session is interrupted or the game window is closed.",
-] as const;
-
 const InfoButton: React.FC<InfoButtonProps> = ({ variant = "header" }) => {
+    const { language } = useContext(AppContext);
+    const t = getTranslation(language);
     const [isHovered, setIsHovered] = useState(false);
     const isHeader = variant === "header";
 
@@ -39,7 +38,7 @@ const InfoButton: React.FC<InfoButtonProps> = ({ variant = "header" }) => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-                About
+                {t.about}
             </button>
             {isHovered && (
                 <div
@@ -60,17 +59,22 @@ const InfoButton: React.FC<InfoButtonProps> = ({ variant = "header" }) => {
                         fontWeight: 700,
                     }}
                 >
-                    {ABOUT_PANEL_TEXT.map((paragraph, i) => (
-                        <p
-                            key={i}
-                            style={{
-                                margin: 0,
-                                marginTop: i === 0 ? 0 : 12,
-                            }}
-                        >
-                            {paragraph}
-                        </p>
-                    ))}
+                    <p
+                        style={{
+                            margin: 0,
+                            marginTop: 0,
+                        }}
+                    >
+                        {t.aboutParagraph1}
+                    </p>
+                    <p
+                        style={{
+                            margin: 0,
+                            marginTop: 12,
+                        }}
+                    >
+                        {t.aboutParagraph2}
+                    </p>
                 </div>
             )}
         </div>

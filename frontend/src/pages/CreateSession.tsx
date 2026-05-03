@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
+import { getTranslation } from "../constants/translations";
 import AppTopBar from "../components/AppTopBar/AppTopBar";
 import Header from "../components/Header/Header";
 import PageCard from "../components/PageCard/PageCard";
@@ -28,6 +29,7 @@ const createSessionColumnStyle: React.CSSProperties = {
 const CreateSession: React.FC = () => {
     const navigate = useNavigate();
     const { language, setLanguage } = useContext(AppContext);
+    const t = getTranslation(language);
     const [sessionName, setSessionName] = useState("");
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,7 +50,7 @@ const CreateSession: React.FC = () => {
                 };
                 navigate(`/admin/${created.sessionId}`, { state });
             } catch (err) {
-                setSubmitError(err instanceof Error ? err.message : "Could not create session");
+                setSubmitError(err instanceof Error ? err.message : t.couldNotCreateSession);
             } finally {
                 setIsSubmitting(false);
             }
@@ -70,21 +72,21 @@ const CreateSession: React.FC = () => {
             <AppTopBar language={language} onLanguageChange={setLanguage} />
 
             <div style={createSessionColumnStyle}>
-                <Header title="Daily data privileges" />
-                <PageCard title="Create New Session">
+                <Header title={t.dailyDataPrivileges} />
+                <PageCard title={t.createNewSession}>
                     <form onSubmit={handleSubmit}>
                         <LabeledInput
                             id="session-name"
-                            label="Session Name"
+                            label={t.sessionName}
                             value={sessionName}
                             onChange={setSessionName}
-                            placeholder="e.g.. Class Quiz Feb 21 2026"
+                            placeholder={t.sessionNamePlaceholder}
                         />
                         {submitError && (
                             <p style={{ color: "#b00020", fontSize: 14, marginBottom: 12 }}>{submitError}</p>
                         )}
                         <PrimaryFormButton type="submit" disabled={!sessionName.trim() || isSubmitting}>
-                            {isSubmitting ? "Creating…" : "Create Session"}
+                            {isSubmitting ? t.creating : t.createSession}
                         </PrimaryFormButton>
                     </form>
                 </PageCard>
