@@ -87,7 +87,7 @@ const JoinSession: React.FC = () => {
                     color: "#666",
                 }}
             >
-                /Join Session
+                /{t.joinSession}
             </div>
 
             <div

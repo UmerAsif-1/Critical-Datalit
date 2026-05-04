@@ -42,6 +42,7 @@ function parsePublicQuestion(row: unknown): SessionQuestion | null {
     const o = row as Record<string, unknown>;
     const id = typeof o.id === "string" ? o.id : "";
     const prompt = typeof o.prompt === "string" ? o.prompt : "";
+    const promptFi = typeof o.promptFi === "string" ? o.promptFi : undefined;
     if (!id || !prompt) {
         return null;
     }
@@ -49,6 +50,7 @@ function parsePublicQuestion(row: unknown): SessionQuestion | null {
         id,
         category: normalizeQuestionCategory(o.category),
         prompt,
+        promptFi,
     };
 }
 

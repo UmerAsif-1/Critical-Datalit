@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useContext } from "react";
 import type { QuestionCategory } from "../../types/sessionQuestion";
+import { AppContext } from "../../context/AppContext";
 import { getPrivilegeCategoryDisplay } from "../../constants/privilegeCategories";
 
 export interface QuestionCategoryBadgeProps {
@@ -7,7 +8,8 @@ export interface QuestionCategoryBadgeProps {
 }
 
 const QuestionCategoryBadge: React.FC<QuestionCategoryBadgeProps> = ({ category }) => {
-    const { label, emoji } = getPrivilegeCategoryDisplay(category);
+    const { language } = useContext(AppContext);
+    const { label, emoji } = getPrivilegeCategoryDisplay(category, language);
 
     return (
         <div

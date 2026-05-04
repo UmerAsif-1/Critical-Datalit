@@ -1,3 +1,5 @@
+import type { QuestionCategory } from "../types/sessionQuestion";
+
 export type Language = "EN" | "FI";
 
 export interface Translations {
@@ -20,6 +22,22 @@ export interface Translations {
     session: string;
     inThisSessionYouWill: string;
     start: string;
+    currentSession: {
+        loading: string;
+        noQuestions: string;
+        sessionLabel: string;
+        previous: string;
+        next: string;
+        submit: string;
+        answerGroupLabel: string;
+        answerOptions: {
+            completelyAgree: string;
+            somewhatAgree: string;
+            somewhatDisagree: string;
+            completelyDisagree: string;
+        };
+    };
+    categoryLabels: Record<QuestionCategory, string>;
 
     // CreateSession
     createNewSession: string;
@@ -73,6 +91,29 @@ const EN: Translations = {
     inThisSessionYouWill:
         "In this session you will answer questions about data privilege and how it might affect you in different categories of life:",
     start: "Start",
+    currentSession: {
+        loading: "Loading…",
+        noQuestions: "No questions for this session.",
+        sessionLabel: "Session ",
+        previous: "Previous",
+        next: "Next",
+        submit: "Submit",
+        answerGroupLabel: "Answer",
+        answerOptions: {
+            completelyAgree: "Completely agree",
+            somewhatAgree: "Somewhat agree",
+            somewhatDisagree: "Somewhat disagree",
+            completelyDisagree: "Completely disagree",
+        },
+    },
+    categoryLabels: {
+        age: "Age",
+        class: "Class",
+        language: "Language",
+        gender: "Gender",
+        race_ethnicity: "Race/Ethnicity",
+        ability: "Ability",
+    },
 
     createNewSession: "Create New Session",
     sessionName: "Session Name",
@@ -122,8 +163,31 @@ const FI: Translations = {
 
     session: "Istunto",
     inThisSessionYouWill:
-        "Tässä istunnossa vastaat kysymyksiin dataetuoikeudesta ja siitä, miten se voi vaikuttaa sinuun elämän eri aloilla:",
+        "Tässä istunnossa vastaat kysymyksiin dataetuoikeudesta ja siitä miten se saattaa vaikuttaa sinuun elämän eri osa-alueilla:",
     start: "Aloita",
+    currentSession: {
+        loading: "Ladataan…",
+        noQuestions: "Tässä istunnossa ei ole kysymyksiä.",
+        sessionLabel: "Istunto ",
+        previous: "Edellinen",
+        next: "Seuraava",
+        submit: "Lähetä",
+        answerGroupLabel: "Vastaus",
+        answerOptions: {
+            completelyAgree: "Täysin samaa mieltä",
+            somewhatAgree: "Osittain samaa mieltä",
+            somewhatDisagree: "Osittain eri mieltä",
+            completelyDisagree: "Täysin eri mieltä",
+        },
+    },
+    categoryLabels: {
+        age: "Ikä",
+        class: "Luokka",
+        language: "Kieli",
+        gender: "Sukupuoli",
+        race_ethnicity: "Rotu/Etnisyys",
+        ability: "Kyvykkyys",
+    },
 
     createNewSession: "Luo uusi istunto",
     sessionName: "Istunnon nimi",
@@ -151,7 +215,8 @@ const FI: Translations = {
     endSession: "Lopeta istunto",
     couldNotLoadAdminData: "Ylläpitäjän tietoja ei voitu ladata",
     csvDownloadFailed: "CSV-lataus epäonnistui",
-    couldNotEndSession: "Istuntoa ei voitu lopettaa",};
+    couldNotEndSession: "Istuntoa ei voitu lopettaa",
+};
 
 export const translations: Record<Language, Translations> = {
     EN,

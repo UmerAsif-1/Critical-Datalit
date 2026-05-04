@@ -40,8 +40,8 @@ const dailyDataPrivileges: Quiz = {
         {
             id: "ddp-age-1",
             category: "age",
-            prompt: "I am comfortable learning new apps quickly.",
-            promptFi: "Opin uusia sovelluksia nopeasti ja vaivattomasti.",
+            prompt: "I am not targeted by scams because of my age.",
+            promptFi: "En ole huijausten kohteena ikäni vuoksi.",
             type: "single-choice",
             answers: likertAnswers("age"),
         },
@@ -88,8 +88,8 @@ const dailyDataPrivileges: Quiz = {
         {
             id: "ddp-age-2",
             category: "age",
-            prompt: "I am not stereotyped as “too young” to understand technology.",
-            promptFi: "Minua ei stereotypisoida ”liian nuoreksi” ymmärtämään teknologiaa.",
+            prompt: "I can find online spaces for people my age easily.",
+            promptFi: "Löydän helposti verkkoyhteisöjä omassa ikäryhmässäni.",
             type: "single-choice",
             answers: likertAnswers("age"),
         },

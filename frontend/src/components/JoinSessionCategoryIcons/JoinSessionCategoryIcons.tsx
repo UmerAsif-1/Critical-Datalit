@@ -1,5 +1,6 @@
-import React from "react";
-import { PRIVILEGE_CATEGORIES } from "../../constants/privilegeCategories";
+import React, { useContext } from "react";
+import { PRIVILEGE_CATEGORIES, getPrivilegeCategoryDisplay } from "../../constants/privilegeCategories";
+import { AppContext } from "../../context/AppContext";
 
 const emojiStyle: React.CSSProperties = {
     fontSize: 40,
@@ -25,6 +26,8 @@ const cellStyle: React.CSSProperties = {
 };
 
 const JoinSessionCategoryIcons: React.FC = () => {
+    const { language } = useContext(AppContext);
+
     return (
         <div
             style={{
@@ -35,14 +38,17 @@ const JoinSessionCategoryIcons: React.FC = () => {
                 width: "100%",
             }}
         >
-            {PRIVILEGE_CATEGORIES.map(({ emoji, label }) => (
-                <div key={label} style={cellStyle}>
-                    <span style={emojiStyle} role="img" aria-label={label}>
-                        {emoji}
-                    </span>
-                    <span style={labelStyle}>{label}</span>
-                </div>
-            ))}
+            {PRIVILEGE_CATEGORIES.map(({ emoji, id }) => {
+                const { label } = getPrivilegeCategoryDisplay(id, language);
+                return (
+                    <div key={id} style={cellStyle}>
+                        <span style={emojiStyle} role="img" aria-label={label}>
+                            {emoji}
+                        </span>
+                        <span style={labelStyle}>{label}</span>
+                    </div>
+                );
+            })}
         </div>
     );
 };

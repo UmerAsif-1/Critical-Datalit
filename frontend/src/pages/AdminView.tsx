@@ -12,6 +12,7 @@ import {
 import AppTopBar from "../components/AppTopBar/AppTopBar";
 import Header from "../components/Header/Header";
 import { AppContext } from "../context/AppContext";
+import { getTranslation } from "../constants/translations";
 import { PRIVILEGE_CATEGORIES, getPrivilegeCategoryDisplay } from "../constants/privilegeCategories";
 import { colors } from "../theme/colors";
 import type { QuestionCategory } from "../types/sessionQuestion";
@@ -131,6 +132,7 @@ const AdminView: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { language, setLanguage } = useContext(AppContext);
+    const t = getTranslation(language);
 
     const state = location.state as AdminViewLocationState | undefined;
     const sessionName = state?.sessionName?.trim() || "New session";
@@ -166,7 +168,7 @@ const AdminView: React.FC = () => {
                 }
             } catch (e) {
                 if (!cancelled) {
-                    setLoadError(e instanceof Error ? e.message : "Could not load admin data");
+                    setLoadError(e instanceof Error ? e.message : t.couldNotLoadAdminData);
                 }
             } finally {
                 if (!cancelled) {
@@ -295,7 +297,7 @@ const AdminView: React.FC = () => {
             try {
                 await downloadAdminSessionCsv(sessionId, `session-${sessionId}`);
             } catch (e) {
-                setLoadError(e instanceof Error ? e.message : "CSV download failed");
+                setLoadError(e instanceof Error ? e.message : t.csvDownloadFailed);
             } finally {
                 setCsvBusy(false);
             }
@@ -316,7 +318,7 @@ const AdminView: React.FC = () => {
                 };
                 navigate(`/admin/${sessionId}/ended`, { state: endedState });
             } catch (e) {
-                setLoadError(e instanceof Error ? e.message : "Could not end session");
+                setLoadError(e instanceof Error ? e.message : t.couldNotEndSession);
             } finally {
                 setEndBusy(false);
             }
@@ -365,10 +367,10 @@ const AdminView: React.FC = () => {
                     boxSizing: "border-box",
                 }}
             >
-                <Header title="Daily data privileges" />
+                <Header title={t.dailyDataPrivileges} />
 
                 {initialLoad && (
-                    <p style={{ textAlign: "center", color: colors.darkText }}>Loading session…</p>
+                    <p style={{ textAlign: "center", color: colors.darkText }}>{t.loadingSession}</p>
                 )}
 
                 {!initialLoad && loadError && (
@@ -389,14 +391,14 @@ const AdminView: React.FC = () => {
                             }}
                         >
                             <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>
-                                <div>Session {sessionId}</div>
+                                <div>{t.session} {sessionId}</div>
                                 {joinCodeDisplay && (
-                                    <div style={{ fontWeight: 600 }}>Join code: {joinCodeDisplay}</div>
+                                    <div style={{ fontWeight: 600 }}>{t.joinCode}{joinCodeDisplay}</div>
                                 )}
                                 <div style={{ fontWeight: 600 }}>&quot;{sessionName}&quot;</div>
                             </div>
                             <div style={{ fontSize: 18, fontWeight: 700, marginLeft: "auto" }}>
-                                {participantCount} participant{participantCount === 1 ? "" : "s"}
+                                {participantCount} {participantCount === 1 ? t.participant : t.participants}
                             </div>
                         </div>
 
@@ -411,7 +413,7 @@ const AdminView: React.FC = () => {
                             <section style={{ ...cardShell, display: "flex", flexDirection: "column", minHeight: 420 }}>
                                 <div style={{ marginBottom: 16 }}>
                                     <label htmlFor="admin-filter" style={{ fontSize: 14, fontWeight: 700, marginRight: 8 }}>
-                                        Filter
+                                        {t.filter}
                                     </label>
                                     <select
                                         id="admin-filter"
@@ -430,23 +432,23 @@ const AdminView: React.FC = () => {
                                             maxWidth: "100%",
                                         }}
                                     >
-                                        <option value="all">Category: All</option>
+                                        <option value="all">{t.categoryAll}</option>
                                         {PRIVILEGE_CATEGORIES.map((c) => (
                                             <option key={c.id} value={c.id}>
-                                                Category: {c.label}
+                                                {t.category}{c.label}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 17, color: colors.darkText }}>
-                                    Question: {activeQuestion.prompt}
+                                    {t.question}{activeQuestion.prompt}
                                 </p>
                                 <p style={{ margin: "0 0 16px", fontSize: 14, color: "#555" }}>
-                                    Category: {getPrivilegeCategoryDisplay(activeQuestion.category).label} privilege
+                                    {t.category}{getPrivilegeCategoryDisplay(activeQuestion.category, language).label} {t.privilege}
                                 </p>
                                 <p style={{ margin: "0 0 16px", fontWeight: 700, fontSize: 15 }}>
-                                    {answeredThisQuestion}/{participantCount} answers
+                                    {answeredThisQuestion}/{participantCount} {t.answers}
                                 </p>
 
                                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -493,10 +495,10 @@ const AdminView: React.FC = () => {
                                         marginTop: 24,
                                     }}
                                 >
-                                    <button type="button" style={tealRoundButton} onClick={goPrev} aria-label="Previous question">
+                                    <button type="button" style={tealRoundButton} onClick={goPrev} aria-label={t.previousQuestion}>
                                         ←
                                     </button>
-                                    <button type="button" style={tealRoundButton} onClick={goNext} aria-label="Next question">
+                                    <button type="button" style={tealRoundButton} onClick={goNext} aria-label={t.nextQuestion}>
                                         →
                                     </button>
                                 </div>
@@ -511,7 +513,7 @@ const AdminView: React.FC = () => {
                                         color: colors.darkText,
                                     }}
                                 >
-                                    Average privilege levels ({participantCount} joined)
+                                    {t.averagePrivilegeLevels} ({participantCount} {t.joined})
                                 </h2>
                                 <div style={{ width: "100%", height: 360 }}>
                                     <ResponsiveContainerC width="100%" height="100%">
@@ -578,10 +580,10 @@ const AdminView: React.FC = () => {
                     }}
                 >
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: colors.darkText }}>
-                        Session time left: {formatTimeLeft(remainingMs)}
+                        {t.sessionTimeLeft}{formatTimeLeft(remainingMs)}
                         {results.session.ttlHours ? (
                             <span style={{ fontWeight: 600, fontSize: 14, marginLeft: 8, color: "#555" }}>
-                                ({results.session.ttlHours}h limit)
+                                ({results.session.ttlHours}{t.hLimit})
                             </span>
                         ) : null}
                     </p>
@@ -592,7 +594,7 @@ const AdminView: React.FC = () => {
                             onClick={handleDownloadCsv}
                             disabled={csvBusy}
                         >
-                            {csvBusy ? "…" : "Download CSV"}
+                            {csvBusy ? "…" : t.downloadCsv}
                         </button>
                         <button
                             type="button"
@@ -600,7 +602,7 @@ const AdminView: React.FC = () => {
                             onClick={handleEndSession}
                             disabled={endBusy}
                         >
-                            {endBusy ? "…" : "End session"}
+                            {endBusy ? "…" : t.endSession}
                         </button>
                     </div>
                 </footer>

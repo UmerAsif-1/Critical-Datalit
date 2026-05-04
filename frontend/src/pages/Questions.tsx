@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header/Header";
 import LanguageSwitcher from "../components/LanguageSwitcher/LanguageSwitcher";
@@ -6,6 +6,8 @@ import type { Language } from "../components/LanguageSwitcher/LanguageSwitcher";
 import AccessibilityControls from "../components/AccessibilityControls/AccessibilityControls";
 import InfoButton from "../components/InfoButton/InfoButton";
 import QuestionCategoryBadge from "../components/QuestionCategoryBadge/QuestionCategoryBadge";
+import { AppContext } from "../context/AppContext";
+import { getTranslation } from "../constants/translations";
 import { getGameResult, submitGameAnswer } from "../services/api";
 import {
     fetchFirstQuizId,
@@ -22,13 +24,6 @@ const TEAL_NAV = "#55ADA3";
 const DARK_BLACK = "#222222";
 const PROGRESS_YELLOW = "#E6C84A";
 
-const ANSWER_OPTIONS: { value: string; label: string }[] = [
-    { value: "completely_agree", label: "Completely agree" },
-    { value: "somewhat_agree", label: "Somewhat agree" },
-    { value: "somewhat_disagree", label: "Somewhat disagree" },
-    { value: "completely_disagree", label: "Completely disagree" },
-];
-
 export type QuestionsLocationState = {
     joinCode?: string;
     quizId?: string;
@@ -41,7 +36,16 @@ const Questions: React.FC = () => {
     const navigate = useNavigate();
     const state = location.state as QuestionsLocationState | undefined;
 
-    const [language, setLanguage] = useState<Language>("EN");
+    const { language, setLanguage } = useContext(AppContext);
+    const t = getTranslation(language);
+
+    const ANSWER_OPTIONS: { value: string; label: string }[] = [
+        { value: "completely_agree", label: t.currentSession.answerOptions.completelyAgree },
+        { value: "somewhat_agree", label: t.currentSession.answerOptions.somewhatAgree },
+        { value: "somewhat_disagree", label: t.currentSession.answerOptions.somewhatDisagree },
+        { value: "completely_disagree", label: t.currentSession.answerOptions.completelyDisagree },
+    ];
+
     const [questions, setQuestions] = useState<SessionQuestion[]>([]);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -244,7 +248,7 @@ const Questions: React.FC = () => {
                 <AccessibilityControls variant="header" />
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <InfoButton variant="header" />
-                    <LanguageSwitcher
+                            <LanguageSwitcher
                         selected={language}
                         onChange={setLanguage}
                         variant="header"
@@ -266,7 +270,7 @@ const Questions: React.FC = () => {
                     boxSizing: "border-box",
                 }}
             >
-                <Header title="Daily data privileges" />
+                <Header title={t.dailyDataPrivileges} />
 
                 <div
                     style={{
@@ -284,7 +288,7 @@ const Questions: React.FC = () => {
                             textAlign: "left",
                         }}
                     >
-                        Session {joinCode}
+                        {t.currentSession.sessionLabel}{joinCode}
                     </p>
                 </div>
 
@@ -299,7 +303,7 @@ const Questions: React.FC = () => {
                     }}
                 >
                     {isLoading && (
-                        <p style={{ margin: 0, textAlign: "center", color: DARK_BLACK }}>Loading…</p>
+                        <p style={{ margin: 0, textAlign: "center", color: DARK_BLACK }}>{t.currentSession.loading}</p>
                     )}
 
                     {!isLoading && loadError && (
@@ -308,7 +312,7 @@ const Questions: React.FC = () => {
 
                     {!isLoading && !loadError && totalQuestions === 0 && (
                         <p style={{ margin: 0, textAlign: "center", color: DARK_BLACK }}>
-                            No questions for this session.
+                            {t.currentSession.noQuestions}
                         </p>
                     )}
 
@@ -366,13 +370,13 @@ const Questions: React.FC = () => {
                                         minWidth: 0,
                                     }}
                                 >
-                                    {current.prompt}
+                                    {language === "FI" && current.promptFi ? current.promptFi : current.prompt}
                                 </p>
                             </div>
 
                             <div
                                 role="radiogroup"
-                                aria-label="Answer"
+                                aria-label={t.currentSession.answerGroupLabel}
                                 style={{
                                     display: "flex",
                                     flexDirection: "column",
@@ -427,7 +431,7 @@ const Questions: React.FC = () => {
                                     disabled={!canGoPrevious}
                                     style={navButtonStyle(canGoPrevious)}
                                 >
-                                    Previous
+                                    {t.currentSession.previous}
                                 </button>
                                 <button
                                     type="button"
@@ -435,7 +439,7 @@ const Questions: React.FC = () => {
                                     disabled={!selected || isSubmitting}
                                     style={navButtonStyle(Boolean(selected) && !isSubmitting)}
                                 >
-                                    {isSubmitting ? "…" : isLastQuestion ? "Submit" : "Next"}
+                                    {isSubmitting ? "…" : isLastQuestion ? t.currentSession.submit : t.currentSession.next}
                                 </button>
                             </div>
                         </>

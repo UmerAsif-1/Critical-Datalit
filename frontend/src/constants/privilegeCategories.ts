@@ -1,4 +1,5 @@
 import type { QuestionCategory } from "../types/sessionQuestion";
+import { translations, type Language } from "./translations";
 
 // Six dimensions; shared by Join Session + Questions (API sends category slug).
 export const PRIVILEGE_CATEGORIES: ReadonlyArray<{
@@ -19,10 +20,11 @@ const byId = Object.fromEntries(PRIVILEGE_CATEGORIES.map((c) => [c.id, c])) as R
     (typeof PRIVILEGE_CATEGORIES)[number]
 >;
 
-export function getPrivilegeCategoryDisplay(category: QuestionCategory): {
+export function getPrivilegeCategoryDisplay(category: QuestionCategory, language: Language = "EN"): {
     label: string;
     emoji: string;
 } {
     const row = byId[category];
-    return row ? { label: row.label, emoji: row.emoji } : byId.gender;
+    const label = translations[language].categoryLabels[category];
+    return row ? { label, emoji: row.emoji } : { label: translations[language].categoryLabels.gender, emoji: byId.gender.emoji };
 }

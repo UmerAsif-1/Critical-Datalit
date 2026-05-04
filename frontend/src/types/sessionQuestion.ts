@@ -14,4 +14,5 @@ export interface SessionQuestion {
     id: string;
     category: QuestionCategory;
     prompt: string;
+    promptFi?: string;
 }
