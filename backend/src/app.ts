@@ -14,7 +14,9 @@ const allowedOrigins = process.env.CORS_ORIGIN
     : [
         "http://localhost:3000",
         "http://localhost:3001",
-        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/ // Matches any 192.168.x.x IP
+        "https://localhost:3000",
+        "https://localhost:3001",
+        /^https:\/\/192\.168\.\d+\.\d+:\d+$/ // LAN IPs must use HTTPS
     ];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
