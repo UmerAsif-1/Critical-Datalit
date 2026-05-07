@@ -28,12 +28,12 @@ Same as `npm run dev` from the repo root.
 
 This starts:
 
-| Service   | URL                     | Notes                                      |
-|----------|-------------------------|--------------------------------------------|
-| API      | http://localhost:3001   | CORS allows the React dev server           |
-| Frontend | http://localhost:3000   | Proxies `/api` to port **3001** (see `frontend/package.json`) |
+| Service   | URL                      | Notes                                      |
+|----------|--------------------------|--------------------------------------------|
+| API      | https://localhost:3001   | CORS allows the React dev server           |
+| Frontend | https://localhost:3000   | Proxies `/api` to port **3001** (see `frontend/package.json`) |
 
-Open **http://localhost:3000** and use routes such as `/MainView`.
+Open **https://localhost:3000** and use routes such as `/MainView`. The first visit on each device will show a self-signed-cert warning — click through it once.
 
 Stop both processes with **Ctrl+C**.
 
@@ -58,15 +58,24 @@ BROWSER=none PORT=3000 npm start
 - **`frontend`**: `REACT_APP_API_URL` — only if you are not using the CRA proxy (defaults to same-origin `/api` → proxy target).
 - **`backend`**: `PORT` (default `3000`; use **3001** with this repo’s frontend proxy), `CORS_ORIGIN` (comma-separated origins if needed).
 
-### HTTPS for local dev (optional)
+### HTTPS for local dev
 
-Local dev runs over plain HTTP. If you need TLS locally (secure-context APIs, accessing the dev server from a phone, etc.) follow [docs/HTTPS_LOCAL_DEV.md](docs/HTTPS_LOCAL_DEV.md). Production TLS is handled by Caddy and unaffected.
+`run-local-dev.sh` generates a self-signed cert in `backend/certs/` on first run and starts both ends over HTTPS. Plain HTTP is only served when the certs are absent, and only on `127.0.0.1` (LAN access requires HTTPS). See [docs/HTTPS_LOCAL_DEV.md](docs/HTTPS_LOCAL_DEV.md) for the manual / advanced setup. Production TLS is handled by Caddy and unaffected.
 
 ## Backend tests
 
 ```bash
 cd backend && npm test
 ```
+
+## Troubleshooting
+
+- **"Invalid Host header" when connecting via LAN IP** — CRA's webpack-dev-server rejects requests whose `Host` header isn't in its allow-list. Add `DANGEROUSLY_DISABLE_HOST_CHECK=true` to `frontend/.env` and restart.
+- **Phones reject the cert** ("connection is not private" with no continue option) — the cert's SAN list doesn't include the IP the phone connected to. Usually means the LAN IP changed or the script picked a virtual adapter (VirtualBox / WSL / Hyper-V) instead of Wi-Fi. Delete `backend/certs/` and rerun the script to regenerate.
+- **Windows Firewall blocks participants** — on first run Windows asks where Node is allowed; tick **Private networks** so LAN devices can reach the dev server.
+- **`EADDRINUSE` on port 3000 or 3001** — another process is bound. Find it with `netstat -ano | findstr :3000` (Windows) or `lsof -i :3000` (macOS / Linux) and stop it.
+- **`openssl: command not found`** — needed for cert generation. On Windows, run from Git Bash (which bundles it); on Linux / macOS install via your package manager.
+- **`SSL_ERROR_RX_RECORD_TOO_LONG`** — one end is HTTPS while the other is plain HTTP. Confirm `backend/certs/` has both `cert.pem` and `key.pem`; if only one exists, delete the directory and rerun the script.
 
 ## Production build (frontend only)
 
