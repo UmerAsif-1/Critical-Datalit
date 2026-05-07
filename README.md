@@ -60,7 +60,7 @@ BROWSER=none PORT=3000 npm start
 
 ### HTTPS for local dev
 
-`run-local-dev.sh` generates a self-signed cert in `backend/certs/` on first run and starts both ends over HTTPS. Plain HTTP is only served when the certs are absent, and only on `127.0.0.1` (LAN access requires HTTPS). See [docs/HTTPS_LOCAL_DEV.md](docs/HTTPS_LOCAL_DEV.md) for the manual / advanced setup. Production TLS is handled by Caddy and unaffected.
+`run-local-dev.sh` generates a self-signed cert in `backend/certs/` on first run and starts both ends over HTTPS. HTTPS is required for secure-context features (clipboard, service workers) and for LAN/phone access — browsers refuse plain HTTP from anything other than `localhost`. Plain HTTP is only served when the certs are absent, and only on `127.0.0.1` (LAN access requires HTTPS). To revert to plain HTTP, delete `backend/certs/` and restart the script. Production TLS is handled by Caddy and unaffected.
 
 ## Backend tests
 
