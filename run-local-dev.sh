@@ -26,6 +26,10 @@ CERT_DIR="$ROOT/backend/certs"
 CERT_FILE="$CERT_DIR/cert.pem"
 KEY_FILE="$CERT_DIR/key.pem"
 
+if [[ -z "${LAN_IP:-}" ]]; then
+  LAN_IP=$(node -e "for (const ifs of Object.values(require('os').networkInterfaces())) { for (const i of ifs) { if (i.family === 'IPv4' && !i.internal) { console.log(i.address); process.exit(0); } } }" 2>/dev/null || true)
+fi
+
 if [[ ! -f "$CERT_FILE" ]] || [[ ! -f "$KEY_FILE" ]]; then
   if ! command -v openssl >/dev/null 2>&1; then
     echo "Error: openssl is required to generate the local HTTPS cert but was not found." >&2
@@ -34,7 +38,6 @@ if [[ ! -f "$CERT_FILE" ]] || [[ ! -f "$KEY_FILE" ]]; then
   fi
   echo "Generating self-signed cert in $CERT_DIR…"
   mkdir -p "$CERT_DIR"
-  LAN_IP=$(node -e "for (const ifs of Object.values(require('os').networkInterfaces())) { for (const i of ifs) { if (i.family === 'IPv4' && !i.internal) { console.log(i.address); process.exit(0); } } }" 2>/dev/null || true)
   SAN="DNS:localhost,IP:127.0.0.1"
   if [[ -n "${LAN_IP:-}" ]]; then
     SAN="$SAN,IP:$LAN_IP"
@@ -53,8 +56,13 @@ if [[ ! -f "$CERT_FILE" ]] || [[ ! -f "$KEY_FILE" ]]; then
   echo "Cert SANs: $SAN"
 fi
 
+CORS_ORIGIN_LIST="https://localhost:3000,https://localhost:3001"
+if [[ -n "${LAN_IP:-}" ]]; then
+  CORS_ORIGIN_LIST="$CORS_ORIGIN_LIST,https://$LAN_IP:3000,https://$LAN_IP:3001"
+fi
+
 echo "Starting backend on https://localhost:3001"
-(cd "$ROOT/backend" && PORT=3001 npm run dev) &
+(cd "$ROOT/backend" && PORT=3001 CORS_ORIGIN="$CORS_ORIGIN_LIST" npm run dev) &
 
 echo "Starting frontend on https://localhost:3000"
 # CRA reads SSL_*_FILE relative to the frontend CWD. Relative paths sidestep
